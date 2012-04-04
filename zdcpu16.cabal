@@ -3,7 +3,7 @@ Version:             0.1.0
 Synopsis:            Zhen DCPU-16 Emulator
 
 -- A longer description of the package.
--- Description:         
+-- Description:
 Homepage:            https://github.com/zhensydow/z-dcpu-16
 License:             GPL-3
 License-file:        LICENSE
@@ -19,18 +19,23 @@ Extra-source-files:  README.org
 Library
   Hs-source-dirs:      src
   Default-language:    Haskell2010
+  Exposed-modules:     ZDCpu16.ZDCpu16
+  Other-modules:       Paths_zdcpu16
+  Build-depends:       base==4.3.*, mtl==2.0.*, array==0.3.*
+  Ghc-options:         -Wall -O2 -funbox-strict-fields
 
 Executable zdcpu16
   Hs-source-dirs:      src
   Default-language:    Haskell2010
+
   Main-is:             zddcpu16_main.hs
-  
+
   -- Packages needed in order to build this package.
-  -- Build-depends:       
-  
+  Build-depends:       base==4.3.*
+
   -- Modules not exported by this package.
-  -- Other-modules:       
-  
+  -- Other-modules:
+
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
-  -- Build-tools:         
-  
+  -- Build-tools:
+  Ghc-options:         -Wall -O2 -funbox-strict-fields
