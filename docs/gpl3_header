@@ -1,5 +1,5 @@
 {- -----------------------------------------------------------------------------
-Z-DCPU-16 is a DCPU-16 emulator.
+ZDCPU16 is a DCPU-16 emulator.
 Copyright (C) 2012  Luis Cabellos
 
 This program is free software: you can redistribute it and/or modify
