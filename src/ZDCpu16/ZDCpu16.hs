@@ -46,7 +46,7 @@ instance Show DCPU_16 where
 -- -----------------------------------------------------------------------------
 initialRAM = listArray (0,0xffff) $ repeat 0
 initialRegisters = listArray (0,8) $ repeat 0
-initialDCPU = DCPU_16 initialRAM initialRegisters 0 0xffff 0
+initialDCPU = DCPU_16 initialRAM initialRegisters 0 0 0
 
 -- -----------------------------------------------------------------------------
 reg_A :: DCPU_16 -> Word16
