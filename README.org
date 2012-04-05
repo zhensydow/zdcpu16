@@ -1,0 +1,9 @@
+* About
+
+  Zhen DCPU-16 Toolkit
+
+* Links
+  
+  [[http://0x10c.com][Official 0x10c Web Page]]
+
+  [[http://0x10c.com/doc/dcpu-16.txt][DCPU-16 Specification]]
