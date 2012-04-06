@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module ZDCpu16.ZDCpu16( Emulator, runEmulator, stepEmulator ) where
+module ZDCpu16.ZDCpu16( Emulator, runEmulator, stepEmulator, mkState ) where
 
 -- -----------------------------------------------------------------------------
 import Control.Monad.Identity( Identity, runIdentity )
@@ -24,7 +24,7 @@ import Control.Monad.State( StateT, MonadState(..), runStateT )
 import Data.Array.Unboxed( (!), (//) )
 import Data.Bits( shiftR, shiftL, xor, (.&.), (.|.) );
 import Data.Word( Word16, Word32 )
-import ZDCpu16.Hardware( DCPU_16(..) )
+import ZDCpu16.Hardware( DCPU_16(..), initialDCPU )
 
 -- -----------------------------------------------------------------------------
 data OpCode = SET | ADD | SUB | MUL | DIV | MOD
@@ -81,16 +81,21 @@ nonbasicA = basicB
 data EmulatorState = EmulatorState
                      { eCpu :: ! DCPU_16
                      , cycles :: ! Integer }
-                     deriving( Show )
+                   deriving( Show )
 
 -- -----------------------------------------------------------------------------
 newtype Emulator a = Emulator
                      { runEmul :: StateT EmulatorState Identity a }
-                    deriving( Functor, Monad, MonadState EmulatorState )
+                   deriving( Functor, Monad, MonadState EmulatorState )
 
 -- -----------------------------------------------------------------------------
-runEmulator :: Emulator a -> DCPU_16 -> (a, EmulatorState)
-runEmulator emulator dcpu = runIdentity (runStateT (runEmul emulator) (EmulatorState dcpu 0))
+mkState :: EmulatorState
+mkState = EmulatorState initialDCPU 0
+
+-- -----------------------------------------------------------------------------
+
+runEmulator :: Emulator a -> EmulatorState -> (a, EmulatorState)
+runEmulator emulator st = runIdentity (runStateT (runEmul emulator) st)
 
 -- -----------------------------------------------------------------------------
 incCycles :: Integer -> Emulator ()
