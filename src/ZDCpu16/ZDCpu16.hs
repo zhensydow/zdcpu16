@@ -281,6 +281,7 @@ stepEmulator = do
 execInstruction :: Word16 -> Emulator ()
 execInstruction sp = case opcode sp of
   SET -> do
+    incCycles 1
     a <- getLVal (basicA sp)
     b <- getRVal (basicB sp)
     setLVal a b
