@@ -14,14 +14,18 @@ Category:            Development
 Build-type:          Simple
 Cabal-version:       >=1.10
 
+Data-Dir:            data
+Data-Files:          *.ttf
 Extra-source-files:  README.org
 
 Library
   Hs-source-dirs:      src
   Default-language:    Haskell2010
   Exposed-modules:     ZDCpu16.ZDCpu16
+                       ZDCpu16.Hardware
+                       ZDCpu16.EmuRender
   Other-modules:       Paths_zdcpu16
-  Build-depends:       base==4.3.*, mtl==2.0.*, array==0.3.*
+  Build-depends:       base==4.3.*, mtl==2.0.*, transformers==0.2.*, array==0.3.*, SDL==0.6.*, SDL-ttf==0.6.*, text==0.11.*
   Ghc-options:         -Wall -O2 -funbox-strict-fields
 
 Executable zdcpu16
