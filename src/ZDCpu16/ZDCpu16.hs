@@ -23,7 +23,7 @@ import Control.Monad.Identity( Identity, runIdentity )
 import Control.Monad.State( StateT, MonadState(..), runStateT )
 import Data.Array.Unboxed( (!), (//) )
 import Data.Bits( shiftR, (.&.) );
-import Data.Word( Word16 )
+import Data.Word( Word16, Word32 )
 import ZDCpu16.Hardware( DCPU_16(..) )
 
 -- -----------------------------------------------------------------------------
@@ -162,6 +162,13 @@ setMem dir val = do
   put st{ eCpu = newcpu{ ram = oldram // [(fromIntegral dir,val)] } }
   
 -- -----------------------------------------------------------------------------
+data LVal = LRegister ! Int
+	  | LMem Word16
+	  | LPC | LSP | LO
+	  | LLiteral Word16
+	  deriving( Show )
+
+-- -----------------------------------------------------------------------------
 getRVal :: Word16 -> Emulator Word16
 getRVal v
   -- 0x00-0x07: register (A, B, C, X, Y, Z, I or J, in that order)
@@ -209,17 +216,8 @@ getRVal v
   | otherwise = error $ "invalid R val " ++ show v
 
 -- -----------------------------------------------------------------------------
-data LVal = LRegister ! Int
-	  | LMem Word16
-	  | LPC
-	  | LSP
-	  | LO
-	  | LLiteral
-	  deriving( Show )
-
--- -----------------------------------------------------------------------------
-getLVal :: Word16 -> Emulator LVal
-getLVal v
+getLValRef :: Word16 -> Emulator LVal
+getLValRef v
   -- 0x00-0x07: register (A, B, C, X, Y, Z, I or J, in that order)
   | v >= 0 && v <= 0x07 = return $! LRegister (fromIntegral v)
   -- 0x08-0x0f: [register]
@@ -255,9 +253,13 @@ getLVal v
     dir <- getMem pc
     return $ LMem dir
   -- 0x1f: next word (literal)
-  | v == 0x1f = incCycles 1 >> incPC >> return LLiteral
+  | v == 0x1f = do
+    incCycles 1 
+    pc <- getPC
+    incPC 
+    getMem pc >>= return . LLiteral
   -- 0x20-0x3f: literal value 0x00-0x1f (literal)
-  | v >= 0x20 && v <= 0x3f = return LLiteral
+  | v >= 0x20 && v <= 0x3f = return . LLiteral $! (v - 0x20)
   | otherwise = error $ "invalid L val " ++ show v
                 
 -- -----------------------------------------------------------------------------
@@ -267,7 +269,15 @@ setLVal (LMem dir) val = setMem dir val
 setLVal LSP val = setSP val
 setLVal LPC val = setPC val
 setLVal LO val = setOverflow val
-setLVal LLiteral _ = return ()
+setLVal (LLiteral _) _ = return ()
+
+getLVal :: LVal -> Emulator Word16
+getLVal (LRegister v) = getRegister (fromIntegral v)
+getLVal (LMem dir) = getMem dir
+getLVal LSP = getSP
+getLVal LPC = getPC
+getLVal LO = getOverflow
+getLVal (LLiteral v) = return $ v
 
 -- -----------------------------------------------------------------------------
 stepEmulator :: Emulator ()
@@ -280,11 +290,59 @@ stepEmulator = do
 -- -----------------------------------------------------------------------------
 execInstruction :: Word16 -> Emulator ()
 execInstruction sp = case opcode sp of
+  -- SET a, b - sets a to b
   SET -> do
     incCycles 1
-    a <- getLVal (basicA sp)
+    aref <- getLValRef (basicA sp)
     b <- getRVal (basicB sp)
-    setLVal a b
-  _ -> error $ "invalid opcode " ++ show (opcode sp) ++ " " ++ show sp
+    setLVal aref b
+  -- ADD a, b - sets a to a+b, sets O to 0x0001 if there's an overflow, 0x0 otherwise
+  ADD -> do
+    incCycles 1
+    aref <- getLValRef (basicA sp)
+    b <- getRVal (basicB sp)
+    a <- getLVal aref
+    let (val, o) = addOverflow a b
+    setLVal aref val
+    setOverflow o
+  -- SUB a, b - sets a to a-b, sets O to 0xffff if there's an underflow, 0x0 otherwise
+  SUB -> do
+    incCycles 1
+    aref <- getLValRef (basicA sp)
+    b <- getRVal (basicB sp)
+    a <- getLVal aref
+    let (val, o) = subUnderflow a b
+    setLVal aref val
+    setOverflow o
+  -- MUL a, b - sets a to a*b, sets O to ((a*b)>>16)&0xffff
+  -- DIV a, b - sets a to a/b, sets O to ((a<<16)/b)&0xffff. if b==0, sets a and O to 0 instead.
+  -- MOD a, b - sets a to a%b. if b==0, sets a to 0 instead.
+  -- SHL a, b - sets a to a<<b, sets O to ((a<<b)>>16)&0xffff
+  -- SHR a, b - sets a to a>>b, sets O to ((a<<16)>>b)&0xffff
+  -- AND a, b - sets a to a&b
+  -- BOR a, b - sets a to a|b
+  -- XOR a, b - sets a to a^b
+  -- IFE a, b - performs next instruction only if a==b
+  -- IFN a, b - performs next instruction only if a!=b
+  -- IFG a, b - performs next instruction only if a>b
+  -- IFB a, b - performs next instruction only if (a&b)!=0
+    
+--    a <- getLVal (basicA sp)
+    
+--  _ -> error $ "invalid opcode " ++ show (opcode sp) ++ " " ++ show sp
 
+-- -----------------------------------------------------------------------------
+addOverflow :: Word16 -> Word16 -> (Word16, Word16)
+addOverflow a b = (fromIntegral sum32, overf)
+  where
+    overf = if sum32 > 0xffff then 0x0001 else 0x0
+    sum32 = (fromIntegral a + fromIntegral b) :: Word32
+
+-- -----------------------------------------------------------------------------
+subUnderflow :: Word16 -> Word16 -> (Word16, Word16)
+subUnderflow a b = (fromIntegral subInt, overf)
+  where
+    overf = if subInt < 0 then 0xffff else 0x0
+    subInt = (fromIntegral a - fromIntegral b) :: Int
+    
 -- -----------------------------------------------------------------------------
