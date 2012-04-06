@@ -22,18 +22,21 @@ module ZDCpu16.ZDCpu16( Emulator, runEmulator, stepEmulator ) where
 import Control.Monad.Identity( Identity, runIdentity )
 import Control.Monad.State( StateT, MonadState(..), runStateT )
 import Data.Array.Unboxed( (!), (//) )
-import Data.Bits( shiftR, (.&.) );
+import Data.Bits( shiftR, shiftL, xor, (.&.), (.|.) );
 import Data.Word( Word16, Word32 )
 import ZDCpu16.Hardware( DCPU_16(..) )
 
 -- -----------------------------------------------------------------------------
 data OpCode = SET | ADD | SUB | MUL | DIV | MOD
-	    | SHL | SHR | AND | BOR | XOR
-	    | IFE | IFN | IFG | IFB | JSR | RESERV
-	    deriving( Show )
+            | SHL | SHR | AND | BOR | XOR
+            | IFE | IFN | IFG | IFB | JSR | RESERV
+            deriving( Show )
 
 
 -- -----------------------------------------------------------------------------
+isBasicInstruction :: Word16 -> Bool
+isBasicInstruction val = (val .&. 0xf) /= 0
+
 opcode :: Word16 -> OpCode
 opcode val
   | basicCode == 0 = nonBasicOp ((val `shiftR` 4) .&. 0x3f)
@@ -71,16 +74,19 @@ basicA val = (val `shiftR` 4) .&. 0x3f
 basicB :: Word16 -> Word16
 basicB val = (val `shiftR` 10) .&. 0x3f
 
+nonbasicA :: Word16 -> Word16
+nonbasicA = basicB
+
 -- -----------------------------------------------------------------------------
 data EmulatorState = EmulatorState
-		     { eCpu :: ! DCPU_16 
+                     { eCpu :: ! DCPU_16
                      , cycles :: ! Integer }
-		     deriving( Show )
+                     deriving( Show )
 
 -- -----------------------------------------------------------------------------
 newtype Emulator a = Emulator
-		     { runEmul :: StateT EmulatorState Identity a }
-		    deriving( Functor, Monad, MonadState EmulatorState )
+                     { runEmul :: StateT EmulatorState Identity a }
+                    deriving( Functor, Monad, MonadState EmulatorState )
 
 -- -----------------------------------------------------------------------------
 runEmulator :: Emulator a -> DCPU_16 -> (a, EmulatorState)
@@ -91,7 +97,7 @@ incCycles :: Integer -> Emulator ()
 incCycles d = do
   st <- get
   put st{ cycles = (cycles st) + d }
-  
+
 -- -----------------------------------------------------------------------------
 getRegister :: Word16 -> Emulator Word16
 getRegister v = get >>= return . (! (fromIntegral v)) . registers . eCpu
@@ -160,13 +166,13 @@ setMem dir val = do
   let newcpu = eCpu st
       oldram = ram newcpu
   put st{ eCpu = newcpu{ ram = oldram // [(fromIntegral dir,val)] } }
-  
+
 -- -----------------------------------------------------------------------------
 data LVal = LRegister ! Int
-	  | LMem Word16
-	  | LPC | LSP | LO
-	  | LLiteral Word16
-	  deriving( Show )
+          | LMem Word16
+          | LPC | LSP | LO
+          | LLiteral Word16
+          deriving( Show )
 
 -- -----------------------------------------------------------------------------
 getRVal :: Word16 -> Emulator Word16
@@ -254,14 +260,14 @@ getLValRef v
     return $ LMem dir
   -- 0x1f: next word (literal)
   | v == 0x1f = do
-    incCycles 1 
+    incCycles 1
     pc <- getPC
-    incPC 
+    incPC
     getMem pc >>= return . LLiteral
   -- 0x20-0x3f: literal value 0x00-0x1f (literal)
   | v >= 0x20 && v <= 0x3f = return . LLiteral $! (v - 0x20)
   | otherwise = error $ "invalid L val " ++ show v
-                
+
 -- -----------------------------------------------------------------------------
 setLVal :: LVal -> Word16 -> Emulator ()
 setLVal (LRegister v) val = setRegister v val
@@ -280,6 +286,21 @@ getLVal LO = getOverflow
 getLVal (LLiteral v) = return $ v
 
 -- -----------------------------------------------------------------------------
+instructionLength :: Word16 -> Word16
+instructionLength v
+  | isBasicInstruction v = 1 + (valLength $ basicA v) + (valLength $ basicB v)
+  | otherwise = 1 + (valLength $ nonbasicA v)
+
+-- -----------------------------------------------------------------------------
+valLength :: Word16 -> Word16
+valLength v
+  -- 0x10-0x17: [next word + register]
+  -- 0x1e: [next word]
+  -- 0x1f: next word (literal)
+  | (v >= 0x10 && v <= 0x17) || (v == 0x1e) || (v == 0x1f) = 1
+  | otherwise = 0
+
+-- -----------------------------------------------------------------------------
 stepEmulator :: Emulator ()
 stepEmulator = do
   pc <- getPC
@@ -289,47 +310,89 @@ stepEmulator = do
 
 -- -----------------------------------------------------------------------------
 execInstruction :: Word16 -> Emulator ()
-execInstruction sp = case opcode sp of
+execInstruction ins = case opcode ins of
   -- SET a, b - sets a to b
-  SET -> do
-    incCycles 1
-    aref <- getLValRef (basicA sp)
-    b <- getRVal (basicB sp)
-    setLVal aref b
-  -- ADD a, b - sets a to a+b, sets O to 0x0001 if there's an overflow, 0x0 otherwise
-  ADD -> do
-    incCycles 1
-    aref <- getLValRef (basicA sp)
-    b <- getRVal (basicB sp)
-    a <- getLVal aref
-    let (val, o) = addOverflow a b
-    setLVal aref val
-    setOverflow o
-  -- SUB a, b - sets a to a-b, sets O to 0xffff if there's an underflow, 0x0 otherwise
-  SUB -> do
-    incCycles 1
-    aref <- getLValRef (basicA sp)
-    b <- getRVal (basicB sp)
-    a <- getLVal aref
-    let (val, o) = subUnderflow a b
-    setLVal aref val
-    setOverflow o
+  SET -> setLValIns ins 1 (\_ b -> b)
+  -- ADD a, b - sets a to a+b,
+  -- sets O to 0x0001 if there's an overflow, 0x0 otherwise
+  ADD -> setLValOIns ins 2 addOverflow
+  -- SUB a, b - sets a to a-b,
+  -- sets O to 0xffff if there's an underflow, 0x0 otherwise
+  SUB -> setLValOIns ins 2 subUnderflow
   -- MUL a, b - sets a to a*b, sets O to ((a*b)>>16)&0xffff
-  -- DIV a, b - sets a to a/b, sets O to ((a<<16)/b)&0xffff. if b==0, sets a and O to 0 instead.
+  MUL -> setLValOIns ins 2 mulOverflow
+  -- DIV a, b - sets a to a/b, sets O to ((a<<16)/b)&0xffff.
+  -- if b==0, sets a and O to 0 instead.
+  DIV -> setLValOIns ins 3 divUnderflow
   -- MOD a, b - sets a to a%b. if b==0, sets a to 0 instead.
+  MOD -> setLValIns ins 3 modChecked
   -- SHL a, b - sets a to a<<b, sets O to ((a<<b)>>16)&0xffff
+  SHL -> setLValOIns ins 2 shlOverflow
   -- SHR a, b - sets a to a>>b, sets O to ((a<<16)>>b)&0xffff
+  SHR -> setLValOIns ins 2 shrUnderflow
   -- AND a, b - sets a to a&b
+  AND -> setLValIns ins 1 (.&.)
   -- BOR a, b - sets a to a|b
+  BOR -> setLValIns ins 1 (.|.)
   -- XOR a, b - sets a to a^b
+  XOR -> setLValIns ins 1 xor
   -- IFE a, b - performs next instruction only if a==b
+  IFE -> ifIns ins (==)
   -- IFN a, b - performs next instruction only if a!=b
+  IFN -> ifIns ins (/=)
   -- IFG a, b - performs next instruction only if a>b
+  IFG -> ifIns ins (>)
   -- IFB a, b - performs next instruction only if (a&b)!=0
-    
---    a <- getLVal (basicA sp)
-    
---  _ -> error $ "invalid opcode " ++ show (opcode sp) ++ " " ++ show sp
+  IFB -> ifIns ins (\a b -> (a .&. b) /= 0)
+  -- JSR a - pushes the address of the next instruction to the stack,
+  -- then sets PC to a
+  JSR -> do
+    incCycles 2
+    a <- getRVal (nonbasicA ins)
+    pc <- getPC
+    decSP
+    sp <- getSP
+    setMem sp pc
+    setPC a
+
+  RESERV -> return ()
+
+-- -----------------------------------------------------------------------------
+skipNextInstruction :: Emulator ()
+skipNextInstruction = do
+  pc <- getPC
+  op <- getMem pc
+  setPC (pc + instructionLength op)
+
+-- -----------------------------------------------------------------------------
+setLValIns :: Word16 -> Integer -> (Word16 -> Word16 -> Word16) -> Emulator ()
+setLValIns ins cost f = do
+  incCycles cost
+  aref <- getLValRef (basicA ins)
+  b <- getRVal (basicB ins)
+  a <- getLVal aref
+  setLVal aref $! (a `f` b)
+
+-- -----------------------------------------------------------------------------
+setLValOIns :: Word16 -> Integer -> (Word16 -> Word16 -> (Word16, Word16))
+               -> Emulator ()
+setLValOIns ins cost f = do
+  incCycles cost
+  aref <- getLValRef (basicA ins)
+  b <- getRVal (basicB ins)
+  a <- getLVal aref
+  let (val, o) = f a b
+  setLVal aref val
+  setOverflow o
+
+-- -----------------------------------------------------------------------------
+ifIns :: Word16 -> (Word16 -> Word16 -> Bool) -> Emulator ()
+ifIns ins f = do
+  a <- getLValRef (basicA ins) >>= getLVal
+  b <- getRVal (basicB ins)
+  if f a b
+    then incCycles 2
+    else incCycles 3 >> skipNextInstruction
 
 -- -----------------------------------------------------------------------------
 addOverflow :: Word16 -> Word16 -> (Word16, Word16)
@@ -344,5 +407,42 @@ subUnderflow a b = (fromIntegral subInt, overf)
   where
     overf = if subInt < 0 then 0xffff else 0x0
     subInt = (fromIntegral a - fromIntegral b) :: Int
-    
+
+mulOverflow :: Word16 -> Word16 -> (Word16, Word16)
+mulOverflow a b = (fromIntegral val32, fromIntegral overf)
+  where
+    val32 = (fromIntegral a * fromIntegral b) :: Word32
+    overf = (val32 `shiftR` 16) .&. 0xffff
+
+-- -----------------------------------------------------------------------------
+divUnderflow :: Word16 -> Word16 -> (Word16, Word16)
+divUnderflow a b
+  | b == 0 = (0, 0)
+  | otherwise = (fromIntegral div32, fromIntegral overf)
+  where
+    overf = ((a32 `shiftL` 16) `div` b32) .&. 0xffff
+    div32 = a32 `div` b32
+    a32 = fromIntegral a :: Word32
+    b32 = fromIntegral b :: Word32
+
+-- -----------------------------------------------------------------------------
+shlOverflow :: Word16 -> Word16 -> (Word16, Word16)
+shlOverflow a b = (fromIntegral val32, fromIntegral overf)
+  where
+    overf = (val32 `shiftR` 16) .&. 0xffff
+    val32 = (fromIntegral a `shiftL` fromIntegral b) :: Word32
+
+-- -----------------------------------------------------------------------------
+shrUnderflow :: Word16 -> Word16 -> (Word16, Word16)
+shrUnderflow a b = (a `shiftR` fromIntegral b, fromIntegral overf)
+  where
+    overf = ((a32 `shiftL` 16) `shiftR` fromIntegral b) .&. 0xffff
+    a32 = fromIntegral a :: Word32
+
+-- -----------------------------------------------------------------------------
+modChecked :: Word16 -> Word16 -> Word16
+modChecked a b
+  | b == 0 = a
+  | otherwise = a `mod` b
+
 -- -----------------------------------------------------------------------------
