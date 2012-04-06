@@ -21,7 +21,7 @@ module ZDCpu16.ZDCpu16( Emulator, runEmulator, stepEmulator ) where
 -- -----------------------------------------------------------------------------
 import Control.Monad.Identity( Identity, runIdentity )
 import Control.Monad.State( StateT, MonadState(..), runStateT )
-import Data.Array.Unboxed( UArray, listArray, elems, (!), (//) )
+import Data.Array.Unboxed( (!), (//) )
 import Data.Bits( shiftR, (.&.) );
 import Data.Word( Word16 )
 import ZDCpu16.Hardware( DCPU_16(..) )
@@ -73,7 +73,8 @@ basicB val = (val `shiftR` 10) .&. 0x3f
 
 -- -----------------------------------------------------------------------------
 data EmulatorState = EmulatorState
-		     { eCpu :: ! DCPU_16 }
+		     { eCpu :: ! DCPU_16 
+                     , cycles :: ! Integer }
 		     deriving( Show )
 
 -- -----------------------------------------------------------------------------
@@ -83,8 +84,14 @@ newtype Emulator a = Emulator
 
 -- -----------------------------------------------------------------------------
 runEmulator :: Emulator a -> DCPU_16 -> (a, EmulatorState)
-runEmulator emulator dcpu = runIdentity (runStateT (runEmul emulator) (EmulatorState dcpu))
+runEmulator emulator dcpu = runIdentity (runStateT (runEmul emulator) (EmulatorState dcpu 0))
 
+-- -----------------------------------------------------------------------------
+incCycles :: Integer -> Emulator ()
+incCycles d = do
+  st <- get
+  put st{ cycles = (cycles st) + d }
+  
 -- -----------------------------------------------------------------------------
 getRegister :: Word16 -> Emulator Word16
 getRegister v = get >>= return . (! (fromIntegral v)) . registers . eCpu
@@ -137,6 +144,12 @@ decSP = do
 getOverflow :: Emulator Word16
 getOverflow = get >>= return . overflow . eCpu
 
+setOverflow :: Word16 -> Emulator ()
+setOverflow val = do
+  st <- get
+  let newcpu = eCpu st
+  put st{ eCpu = newcpu{ overflow = val } }
+
 -- -----------------------------------------------------------------------------
 getMem :: Word16 -> Emulator Word16
 getMem dir = get >>= return . (! (fromIntegral dir)) . ram . eCpu
@@ -151,51 +164,49 @@ setMem dir val = do
 -- -----------------------------------------------------------------------------
 getRVal :: Word16 -> Emulator Word16
 getRVal v
+  -- 0x00-0x07: register (A, B, C, X, Y, Z, I or J, in that order)
   | v >= 0 && v <= 0x07 = getRegister v
-
-  | v >= 0x8 && v <= 0x0f = do
-    dir <- getRegister (v - 0x08)
-    getMem dir
-
+  -- 0x08-0x0f: [register]
+  | v >= 0x8 && v <= 0x0f = getRegister (v - 0x08) >>= getMem
+  -- 0x10-0x17: [next word + register]
   | v >= 0x10 && v <= 0x17 = do
+    incCycles 1
     reg <- getRegister (v - 0x10)
     pc <- getPC
     incPC
     dir <- getMem pc
     getMem (dir + reg)
-
+  -- 0x18: POP / [SP++]
   | v == 0x18 = do
     sp <- getSP
     incSP
     getMem sp
-
-  | v == 0x19 = do
-    sp <- getSP
-    getMem sp
-
-  | v == 0x1a = do
-    decSP
-    sp <- getSP
-    getMem sp
-
+  -- 0x19: PEEK / [SP]
+  | v == 0x19 = getSP >>= getMem
+  -- 0x1a: PUSH / [--SP]
+  | v == 0x1a = decSP >> getSP >>= getMem
+  -- 0x1b: SP
   | v == 0x1b = getSP
-
+  -- 0x1c: PC
   | v == 0x1c = getPC
-
+  -- 0x1d: O
   | v == 0x1d = getOverflow
-
+  -- 0x1e: [next word]
   | v == 0x1e = do
+    incCycles 1
     pc <- getPC
     incPC
     dir <- getMem pc
     getMem dir
-
+  -- 0x1f: next word (literal)
   | v == 0x1f = do
+    incCycles 1
     pc <- getPC
     incPC
     getMem pc
-
-  | otherwise = error $ "get RVal " ++ show v
+  -- 0x20-0x3f: literal value 0x00-0x1f (literal)
+  | v >= 0x20 && v <= 0x3f = return $! (v - 0x20)
+  | otherwise = error $ "invalid R val " ++ show v
 
 -- -----------------------------------------------------------------------------
 data LVal = LRegister ! Int
@@ -209,54 +220,53 @@ data LVal = LRegister ! Int
 -- -----------------------------------------------------------------------------
 getLVal :: Word16 -> Emulator LVal
 getLVal v
-  | v >= 0 && v <= 0x07 = return $ LRegister (fromIntegral v)
-
-  | v >= 0x8 && v <= 0x0f = do
-    dir <- getRegister (v - 0x08)
-    return $ LMem dir
-
+  -- 0x00-0x07: register (A, B, C, X, Y, Z, I or J, in that order)
+  | v >= 0 && v <= 0x07 = return $! LRegister (fromIntegral v)
+  -- 0x08-0x0f: [register]
+  | v >= 0x8 && v <= 0x0f = getRegister (v - 0x08) >>= return . LMem
+  -- 0x10-0x17: [next word + register]
   | v >= 0x10 && v <= 0x17 = do
+    incCycles 1
     reg <- getRegister (v - 0x10)
     pc <- getPC
     incPC
     dir <- getMem pc
-    return $ LMem (dir + reg)
-
+    return $! LMem (dir + reg)
+  -- 0x18: POP / [SP++]
   | v == 0x18 = do
     sp <- getSP
     incSP
     return $ LMem sp
-
-  | v == 0x19 = do
-    sp <- getSP
-    return $ LMem sp
-
-  | v == 0x1a = do
-    decSP
-    sp <- getSP
-    return $ LMem sp
-
-  | v == 0x1b = return $ LSP
-
-  | v == 0x1c = return $ LPC
-
-  | v == 0x1d = return $ LO
-
+  -- 0x19: PEEK / [SP]
+  | v == 0x19 = getSP >>= return . LMem
+  -- 0x1a: PUSH / [--SP]
+  | v == 0x1a = decSP >> getSP >>= return . LMem
+  -- 0x1b: SP
+  | v == 0x1b = return LSP
+  -- 0x1c: PC
+  | v == 0x1c = return LPC
+  -- 0x1d: O
+  | v == 0x1d = return LO
+  -- 0x1e: [next word]
   | v == 0x1e = do
+    incCycles 1
     pc <- getPC
     incPC
     dir <- getMem pc
     return $ LMem dir
-
-  | v == 0x1f = do
-    incPC
-    return $ LLiteral
-
-  | otherwise = return $ LLiteral
-
+  -- 0x1f: next word (literal)
+  | v == 0x1f = incCycles 1 >> incPC >> return LLiteral
+  -- 0x20-0x3f: literal value 0x00-0x1f (literal)
+  | v >= 0x20 && v <= 0x3f = return LLiteral
+  | otherwise = error $ "invalid L val " ++ show v
+                
+-- -----------------------------------------------------------------------------
 setLVal :: LVal -> Word16 -> Emulator ()
 setLVal (LRegister v) val = setRegister v val
 setLVal (LMem dir) val = setMem dir val
+setLVal LSP val = setSP val
+setLVal LPC val = setPC val
+setLVal LO val = setOverflow val
 setLVal LLiteral _ = return ()
 
 -- -----------------------------------------------------------------------------
