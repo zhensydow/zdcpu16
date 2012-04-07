@@ -20,7 +20,7 @@ module ZDCpu16.Inst(
   OpCode(..), OpVal(..),
   -- * Functions
   opcode, opval, basicA, basicB, nonbasicA, isBasicInstruction,
-  instructionLength, numValues,
+  instructionLength, numValues, showOpVal,
   -- * Operations
   addOverflow, subUnderflow, mulOverflow, divUnderflow, modChecked,
   shlOverflow, shrUnderflow
@@ -29,6 +29,8 @@ module ZDCpu16.Inst(
 -- -----------------------------------------------------------------------------
 import Data.Bits( shiftR, shiftL, (.&.) )
 import Data.Word( Word16, Word32 )
+import ZDCpu16.Hardware( showReg )
+import ZDCpu16.Util( showWord )
 
 -- -----------------------------------------------------------------------------
 data OpCode = SET | ADD | SUB | MUL | DIV | MOD
@@ -76,6 +78,21 @@ data OpVal = VReg ! Word16
            | VWord ! Word16
            | VLiteral ! Word16
            deriving( Show )
+
+-- -----------------------------------------------------------------------------
+showOpVal :: OpVal -> String
+showOpVal (VReg r) = showReg r
+showOpVal (VMemReg r) = "[" ++ showReg r ++ "]"
+showOpVal (VMemWordReg r w) = "[0x" ++ showWord w ++ "+" ++ showReg r ++ "]"
+showOpVal VPop = "POP"
+showOpVal VPeek = "PEEK"
+showOpVal VPush = "PUSH"
+showOpVal VSP = "PC"
+showOpVal VPC = "PC"
+showOpVal VO = "O"
+showOpVal (VMemWord w) = "[0x" ++ showWord w ++ "]"
+showOpVal (VWord w) = "0x" ++ showWord w
+showOpVal (VLiteral w) = "0x" ++ showWord w
 
 -- -----------------------------------------------------------------------------
 opval :: Word16 -> OpVal
