@@ -37,7 +37,7 @@ Executable zdcpu16-emu
   Main-is:             zddcpu16_emu_main.hs
 
   -- Packages needed in order to build this package.
-  Build-depends:       base==4.3.*
+  Build-depends:       base==4.3.*, mtl==2.0.*, transformers==0.2.*, array==0.3.*, SDL==0.6.*, SDL-ttf==0.6.*, text==0.11.*
 
   -- Modules not exported by this package.
   -- Other-modules:
