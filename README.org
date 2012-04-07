@@ -9,3 +9,5 @@
   [[http://0x10c.com/doc/dcpu-16.txt][DCPU-16 Specification]]
 
   [[http://mappum.github.com/DCPU-16/][DCPU-16 Web Emulator]] of reference
+
+  [[http://dwilliamson.github.com/][DCPU-16]] Live Edit Enviroment
