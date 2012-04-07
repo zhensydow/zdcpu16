@@ -15,12 +15,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
-module ZDCpu16.Disasm( disasm ) where
+module ZDCpu16.Disasm( disasm, disasm', showDIns ) where
 
 -- -----------------------------------------------------------------------------
 import Data.Word( Word16 )
 import ZDCpu16.Inst(
-  OpCode(..), OpVal(..), opcode, opval, nonbasicA, basicA, basicB, numValues )
+  OpCode(..), OpVal(..), opcode, opval, nonbasicA, basicA, basicB, numValues,
+  showOpVal )
 
 -- -----------------------------------------------------------------------------
 data DIns = DOpAB ! OpCode ! OpVal ! OpVal
@@ -30,44 +31,56 @@ data DIns = DOpAB ! OpCode ! OpVal ! OpVal
           deriving( Show )
 
 -- -----------------------------------------------------------------------------
-disasm :: [Word16] -> [DIns]
-disasm [] = []
-disasm (x:xs) = case numValues opc of
-  2 -> case extractAB x xs of
-    Nothing -> [DUnknown]
-    Just (a,b,ys) -> DOpAB opc a b : disasm ys
-  1 -> case extractA x xs of
-    Nothing -> [DUnknown]
-    Just (a,ys) -> DOpA opc a : disasm ys
-  0 -> DOp opc : disasm xs
-  _ -> [DUnknown]
-  where
-    opc = opcode x
+showDIns :: DIns -> String
+showDIns (DOpAB cod a b) = show cod ++ " " ++ showOpVal a ++ ", " ++ showOpVal b
+showDIns (DOpA cod a) = show cod ++ " " ++ showOpVal a
+showDIns (DOp cod) = show cod
+showDIns DUnknown = "unknown"
 
-extractA :: Word16 -> [Word16] -> Maybe (OpVal, [Word16])
+-- -----------------------------------------------------------------------------
+disasm :: [Word16] -> [DIns]
+disasm = map snd . disasm' . zip [0 :: Int ..]
+
+-- -----------------------------------------------------------------------------
+extractA :: Word16 -> [(a,Word16)] -> Maybe (OpVal, [(a,Word16)])
 extractA v xs = extractVal (opval $ nonbasicA v) xs
 
-extractAB :: Word16 -> [Word16] -> Maybe (OpVal, OpVal, [Word16])
+extractAB :: Word16 -> [(a,Word16)] -> Maybe (OpVal, OpVal, [(a,Word16)])
 extractAB v xs = do
   resta <- extractVal (opval $ basicA v) xs
   restb <- extractVal (opval $ basicB v) (snd resta)
   return $ (fst resta, fst restb, snd restb)
 
-extractVal :: OpVal -> [Word16] -> Maybe (OpVal, [Word16])
+extractVal :: OpVal -> [(a,Word16)] -> Maybe (OpVal, [(a,Word16)])
 extractVal v xs = case v of
   VMemWordReg r _ -> do
     w <- safeHead xs
     ys <- safeTail xs
-    return $! (VMemWordReg r w, ys)
+    return $! (VMemWordReg r (snd w), ys)
   VMemWord _ -> do
     w <- safeHead xs
     ys <- safeTail xs
-    return $! (VMemWord w, ys)
+    return $! (VMemWord (snd w), ys)
   VWord _ -> do
     w <- safeHead xs
     ys <- safeTail xs
-    return $! (VWord w, ys)
+    return $! (VWord (snd w), ys)
   _ -> Just (v, xs)
+
+-- -----------------------------------------------------------------------------
+disasm' :: [(a,Word16)] -> [(a,DIns)]
+disasm' [] = []
+disasm' ((z,x):xs) = case numValues opc of
+  2 -> case extractAB x xs of
+    Nothing -> [(z,DUnknown)]
+    Just (a,b,ys) -> (z,DOpAB opc a b) : disasm' ys
+  1 -> case extractA x xs of
+    Nothing -> [(z,DUnknown)]
+    Just (a,ys) -> (z,DOpA opc a) : disasm' ys
+  0 -> (z,DOp opc) : disasm' xs
+  _ -> [(z,DUnknown)]
+  where
+    opc = opcode x
 
 -- -----------------------------------------------------------------------------
 safeHead :: [a] -> Maybe a
