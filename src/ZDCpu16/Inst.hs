@@ -20,7 +20,7 @@ module ZDCpu16.Inst(
   OpCode(..), OpVal(..),
   -- * Functions
   opcode, opval, basicA, basicB, nonbasicA, isBasicInstruction,
-  instructionLength,
+  instructionLength, numValues,
   -- * Operations
   addOverflow, subUnderflow, mulOverflow, divUnderflow, modChecked,
   shlOverflow, shrUnderflow
@@ -138,6 +138,12 @@ valLength v
   -- 0x1f: next word (literal)
   | (v >= 0x10 && v <= 0x17) || (v == 0x1e) || (v == 0x1f) = 1
   | otherwise = 0
+
+-- -----------------------------------------------------------------------------
+numValues :: OpCode -> Int
+numValues JSR = 1
+numValues RESERV = 0
+numValues _ = 2
 
 -- -----------------------------------------------------------------------------
 addOverflow :: Word16 -> Word16 -> (Word16, Word16)
