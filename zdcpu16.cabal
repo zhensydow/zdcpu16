@@ -22,7 +22,8 @@ Extra-source-files:  README.org
 Library
   Hs-source-dirs:      src
   Default-language:    Haskell2010
-  Exposed-modules:     ZDCpu16.ZDCpu16
+  Exposed-modules:     ZDCpu16.Util
+                       ZDCpu16.ZDCpu16
                        ZDCpu16.Hardware
                        ZDCpu16.Inst
                        ZDCpu16.EmuState
