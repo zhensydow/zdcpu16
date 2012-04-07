@@ -20,7 +20,8 @@ module ZDCpu16.Hardware(
   DCPU_16(..),
   -- * Functions
   initialDCPU,
-  reg_A, reg_B, reg_C, reg_X, reg_Y, reg_Z, reg_I, reg_J, load, loads
+  reg_A, reg_B, reg_C, reg_X, reg_Y, reg_Z, reg_I, reg_J, showReg, load, loads,
+  dumps
   ) where
 
 -- -----------------------------------------------------------------------------
@@ -31,19 +32,19 @@ import Data.Word( Word16 )
 type RAM = UArray Int Word16
 
 data DCPU_16 = DCPU_16
-	       { ram :: ! RAM
-	       , registers :: UArray Int Word16
-	       , programCounter :: ! Word16
-	       , stackPointer :: ! Word16
-	       , overflow :: ! Word16 }
+               { ram :: ! RAM
+               , registers :: UArray Int Word16
+               , programCounter :: ! Word16
+               , stackPointer :: ! Word16
+               , overflow :: ! Word16 }
 
 instance Show DCPU_16 where
   show dcpu = concat [ "DCPU-16 { ram = [..]"
-		     , ", registers = ", show . elems $ registers dcpu
-		     , ", PC = ", show $ programCounter dcpu
-		     , ", SP = ", show $ stackPointer dcpu
-		     , ", O = ", show $ overflow dcpu
-		     , "}"]
+                     , ", registers = ", show . elems $ registers dcpu
+                     , ", PC = ", show $ programCounter dcpu
+                     , ", SP = ", show $ stackPointer dcpu
+                     , ", O = ", show $ overflow dcpu
+                     , "}"]
 
 -- -----------------------------------------------------------------------------
 initialRAM :: UArray Int Word16
@@ -79,6 +80,15 @@ reg_J :: DCPU_16 -> Word16
 reg_J = (!7) . registers
 
 -- -----------------------------------------------------------------------------
+showReg :: Word16 -> String
+showReg r
+  | idx >= 0 && idx < (length table) = table !! idx
+  | otherwise = "?"
+    where
+      idx = fromIntegral r
+      table = ["A","B","C","X","Y","Z","I","J"]
+
+-- -----------------------------------------------------------------------------
 load :: Int -> Word16 -> DCPU_16 -> DCPU_16
 load dir val dcpu = dcpu{ ram = newram }
   where
@@ -89,5 +99,9 @@ loads :: Int -> [Word16] -> DCPU_16 -> DCPU_16
 loads dir vals dcpu = dcpu{ ram = newram }
   where
     newram = (ram dcpu) // zip [dir..] vals
+
+-- -----------------------------------------------------------------------------
+dumps :: Int -> DCPU_16 -> [Word16]
+dumps dir = drop dir . elems . ram
 
 -- -----------------------------------------------------------------------------
