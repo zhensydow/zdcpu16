@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module ZDCpu16.ZDCpu16( Emulator, runEmulator, stepEmulator, mkState ) where
+module ZDCpu16.ZDCpu16( Emulator, runEmulator, stepEmulator ) where
 
 -- -----------------------------------------------------------------------------
 import Control.Monad.Identity( Identity, runIdentity )
@@ -24,29 +24,19 @@ import Control.Monad.State( StateT, MonadState(..), runStateT )
 import Data.Array.Unboxed( (!), (//) )
 import Data.Bits( xor, (.&.), (.|.) );
 import Data.Word( Word16 )
-import ZDCpu16.Hardware( DCPU_16(..), initialDCPU )
-import ZDCpu16.Inst( 
-  OpCode(..), opcode, basicA, basicB, nonbasicA, instructionLength, addOverflow, 
+import ZDCpu16.Hardware( DCPU_16(..) )
+import ZDCpu16.Inst(
+  OpCode(..), opcode, basicA, basicB, nonbasicA, instructionLength, addOverflow,
   subUnderflow, mulOverflow, divUnderflow, modChecked, shlOverflow, shrUnderflow )
-
--- -----------------------------------------------------------------------------
-data EmulatorState = EmulatorState
-                     { eCpu :: ! DCPU_16
-                     , cycles :: ! Integer }
-                   deriving( Show )
+import ZDCpu16.EmuState( EmuState(..) )
 
 -- -----------------------------------------------------------------------------
 newtype Emulator a = Emulator
-                     { runEmul :: StateT EmulatorState Identity a }
-                   deriving( Functor, Monad, MonadState EmulatorState )
+                     { runEmul :: StateT EmuState Identity a }
+                   deriving( Functor, Monad, MonadState EmuState )
 
 -- -----------------------------------------------------------------------------
-mkState :: EmulatorState
-mkState = EmulatorState initialDCPU 0
-
--- -----------------------------------------------------------------------------
-
-runEmulator :: Emulator a -> EmulatorState -> (a, EmulatorState)
+runEmulator :: Emulator a -> EmuState -> (a, EmuState)
 runEmulator emulator st = runIdentity (runStateT (runEmul emulator) st)
 
 -- -----------------------------------------------------------------------------
@@ -57,24 +47,24 @@ incCycles d = do
 
 -- -----------------------------------------------------------------------------
 getRegister :: Word16 -> Emulator Word16
-getRegister v = get >>= return . (! (fromIntegral v)) . registers . eCpu
+getRegister v = get >>= return . (! (fromIntegral v)) . registers . emuCpu
 
 setRegister :: Int -> Word16 -> Emulator ()
 setRegister v val = do
   st <- get
-  let newcpu = eCpu st
+  let newcpu = emuCpu st
       oldregisters = registers newcpu
-  put st{ eCpu = newcpu{ registers = oldregisters // [(v,val)] } }
+  put st{ emuCpu = newcpu{ registers = oldregisters // [(v,val)] } }
 
 -- -----------------------------------------------------------------------------
 getPC :: Emulator Word16
-getPC = get >>= return . programCounter . eCpu
+getPC = get >>= return . programCounter . emuCpu
 
 setPC :: Word16 -> Emulator ()
 setPC val = do
   st <- get
-  let newcpu = eCpu st
-  put st{ eCpu = newcpu{ programCounter = val } }
+  let newcpu = emuCpu st
+  put st{ emuCpu = newcpu{ programCounter = val } }
 
 -- -----------------------------------------------------------------------------
 incPC :: Emulator ()
@@ -84,13 +74,13 @@ incPC = do
 
 -- -----------------------------------------------------------------------------
 getSP :: Emulator Word16
-getSP = get >>= return . stackPointer . eCpu
+getSP = get >>= return . stackPointer . emuCpu
 
 setSP :: Word16 -> Emulator ()
 setSP val = do
   st <- get
-  let newcpu = eCpu st
-  put st{ eCpu = newcpu{ stackPointer = val } }
+  let newcpu = emuCpu st
+  put st{ emuCpu = newcpu{ stackPointer = val } }
 
 -- -----------------------------------------------------------------------------
 incSP :: Emulator ()
@@ -105,24 +95,24 @@ decSP = do
 
 -- -----------------------------------------------------------------------------
 getOverflow :: Emulator Word16
-getOverflow = get >>= return . overflow . eCpu
+getOverflow = get >>= return . overflow . emuCpu
 
 setOverflow :: Word16 -> Emulator ()
 setOverflow val = do
   st <- get
-  let newcpu = eCpu st
-  put st{ eCpu = newcpu{ overflow = val } }
+  let newcpu = emuCpu st
+  put st{ emuCpu = newcpu{ overflow = val } }
 
 -- -----------------------------------------------------------------------------
 getMem :: Word16 -> Emulator Word16
-getMem dir = get >>= return . (! (fromIntegral dir)) . ram . eCpu
+getMem dir = get >>= return . (! (fromIntegral dir)) . ram . emuCpu
 
 setMem :: Word16 -> Word16 -> Emulator ()
 setMem dir val = do
   st <- get
-  let newcpu = eCpu st
+  let newcpu = emuCpu st
       oldram = ram newcpu
-  put st{ eCpu = newcpu{ ram = oldram // [(fromIntegral dir,val)] } }
+  put st{ emuCpu = newcpu{ ram = oldram // [(fromIntegral dir,val)] } }
 
 -- -----------------------------------------------------------------------------
 data LVal = LRegister ! Int
