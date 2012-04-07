@@ -30,11 +30,11 @@ Library
   Build-depends:       base==4.3.*, mtl==2.0.*, transformers==0.2.*, array==0.3.*, SDL==0.6.*, SDL-ttf==0.6.*, text==0.11.*
   Ghc-options:         -Wall -O2 -funbox-strict-fields
 
-Executable zdcpu16
+Executable zdcpu16-emu
   Hs-source-dirs:      src
   Default-language:    Haskell2010
 
-  Main-is:             zddcpu16_main.hs
+  Main-is:             zddcpu16_emu_main.hs
 
   -- Packages needed in order to build this package.
   Build-depends:       base==4.3.*
