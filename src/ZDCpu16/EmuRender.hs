@@ -74,8 +74,8 @@ mkRenderState = do
   _ <- SDLTTF.init
   _ <- SDL.setVideoMode 640 480 32 []
   SDL.setCaption "DCPU-16" ""
-  filename <- getDataFileName "GentiumPlus-R.ttf"
-  font <- SDLTTF.openFont filename 14
+  filename <- getDataFileName "ProggyCleanSZ.ttf"
+  font <- SDLTTF.openFont filename 16
   return $! RS font
 
 -- -----------------------------------------------------------------------------
