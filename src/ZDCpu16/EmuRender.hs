@@ -15,11 +15,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, OverloadedStrings #-}
 module ZDCpu16.EmuRender(
   -- * Render Monad
   RenderState, runRender, mkRenderState,  clearScreen, renderText,
-  renderRectangle,
+  renderRectangle, renderEmuState,
   -- * Types
   TextSpan(..), Rectangle(..),
   -- * Colors
@@ -29,13 +29,16 @@ module ZDCpu16.EmuRender(
 -- -----------------------------------------------------------------------------
 import Control.Monad.IO.Class( MonadIO, liftIO )
 import Control.Monad.State( MonadState, StateT, runStateT, get )
-import Data.Text( Text, unpack )
+import Data.Text( Text, unpack, pack )
 import Data.Word( Word8 )
 import qualified Graphics.UI.SDL as SDL(
   Surface, InitFlag(..), Color(..), Rect(..), init, setVideoMode, setCaption,
   flip, blitSurface, mapRGB, fillRect, surfaceGetPixelFormat, getVideoSurface )
 import qualified Graphics.UI.SDL.TTF as SDLTTF(
   Font, init, openFont, renderTextBlended, textSize )
+import ZDCpu16.EmuState( EmuState(..) )
+import ZDCpu16.Hardware(
+  DCPU_16(..), reg_A, reg_B, reg_C, reg_X, reg_Y, reg_Z, reg_I, reg_J )
 import Paths_zdcpu16( getDataFileName )
 
 -- -----------------------------------------------------------------------------
@@ -69,8 +72,8 @@ mkRenderState :: IO RenderState
 mkRenderState = do
   _ <- SDL.init [SDL.InitVideo]
   _ <- SDLTTF.init
-  _ <- SDL.setVideoMode 800 600 32 []
-  SDL.setCaption "cavern" ""
+  _ <- SDL.setVideoMode 640 480 32 []
+  SDL.setCaption "DCPU-16" ""
   filename <- getDataFileName "GentiumPlus-R.ttf"
   font <- SDLTTF.openFont filename 14
   return $! RS font
@@ -126,6 +129,37 @@ renderRectangle (Rectangle x y w h (r,g,b)) = do
   screen <- getMainBuffer
   pixel <- io $ SDL.mapRGB (SDL.surfaceGetPixelFormat screen) r g b
   _ <- io $ SDL.fillRect screen (Just $ SDL.Rect x y w h) pixel
+  return ()
+
+-- -----------------------------------------------------------------------------
+renderEmuState :: EmuState -> Render ()
+renderEmuState st = do
+  renderText (TextSpan 10 10 (255,255,0) "Prueba")
+  let valA = reg_A . emuCpu $ st
+      valB = reg_B . emuCpu $ st
+      valC = reg_C . emuCpu $ st
+      valX = reg_X . emuCpu $ st
+      valY = reg_Y . emuCpu $ st
+      valZ = reg_Z . emuCpu $ st
+      valI = reg_I . emuCpu $ st
+      valJ = reg_J . emuCpu $ st
+  renderText (TextSpan 200 20 white (pack $ "A: " ++ show valA))
+  renderText (TextSpan 200 30 white (pack $ "B: " ++ show valB))
+  renderText (TextSpan 200 40 white (pack $ "C: " ++ show valC))
+  renderText (TextSpan 200 50 white (pack $ "X: " ++ show valX))
+  renderText (TextSpan 200 60 white (pack $ "Y: " ++ show valY))
+  renderText (TextSpan 200 70 white (pack $ "Z: " ++ show valZ))
+  renderText (TextSpan 200 80 white (pack $ "I: " ++ show valI))
+  renderText (TextSpan 200 90 white (pack $ "J: " ++ show valJ))
+
+  let valPC = programCounter . emuCpu $ st
+      valSP = stackPointer . emuCpu $ st
+      valO = overflow . emuCpu $ st
+
+  renderText (TextSpan 200 110 white (pack $ "PC: " ++ show valPC))
+  renderText (TextSpan 200 120 white (pack $ "SP: " ++ show valSP))
+  renderText (TextSpan 200 130 white (pack $ "O: " ++ show valO))
+
   return ()
 
 -- -----------------------------------------------------------------------------
