@@ -15,13 +15,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
-module ZDCpu16.Inst( 
+module ZDCpu16.Inst(
   -- * Types
   OpCode(..),
   -- * Functions
   opcode, basicA, basicB, nonbasicA, isBasicInstruction, instructionLength,
   -- * Operations
-  addOverflow, subUnderflow, mulOverflow, divUnderflow, modChecked, 
+  addOverflow, subUnderflow, mulOverflow, divUnderflow, modChecked,
   shlOverflow, shrUnderflow
   ) where
 
