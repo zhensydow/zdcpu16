@@ -26,6 +26,7 @@ Library
                        ZDCpu16.ZDCpu16
                        ZDCpu16.Hardware
                        ZDCpu16.Inst
+                       ZDCpu16.Disasm
                        ZDCpu16.EmuState
                        ZDCpu16.EmuRender
   Other-modules:       Paths_zdcpu16
