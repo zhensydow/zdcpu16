@@ -27,6 +27,7 @@ module ZDCpu16.EmuRender(
   ) where
 
 -- -----------------------------------------------------------------------------
+import Control.Monad( forM_ )
 import Control.Monad.IO.Class( MonadIO, liftIO )
 import Control.Monad.State( MonadState, StateT, runStateT, get )
 import Data.Text( Text, unpack, pack )
@@ -37,19 +38,21 @@ import qualified Graphics.UI.SDL as SDL(
   flip, blitSurface, mapRGB, fillRect, surfaceGetPixelFormat, getVideoSurface )
 import qualified Graphics.UI.SDL.TTF as SDLTTF(
   Font, init, openFont, renderTextBlended, textSize )
+import ZDCpu16.Disasm( disasm', showDIns )
 import ZDCpu16.EmuState( EmuState(..) )
 import ZDCpu16.Hardware(
-  DCPU_16(..), reg_A, reg_B, reg_C, reg_X, reg_Y, reg_Z, reg_I, reg_J )
+  DCPU_16(..), reg_A, reg_B, reg_C, reg_X, reg_Y, reg_Z, reg_I, reg_J, dumps )
 import ZDCpu16.Util( showWord )
 import Paths_zdcpu16( version, getDataFileName )
 
 -- -----------------------------------------------------------------------------
-black, white, red, green, blue :: (Word8, Word8, Word8)
+black, white, red, green, blue, lightblue :: (Word8, Word8, Word8)
 black = (0,0,0)
 white = (255,255,255)
 red = (255,0,0)
 green = (0,255,0)
 blue = (0,0,255)
+lightblue = (173,216,230)
 
 -- -----------------------------------------------------------------------------
 data TextSpan = TextSpan
@@ -110,7 +113,7 @@ getMainFont = fmap renderFont $ get
 clearScreen :: Render ()
 clearScreen = do
   screen <- getMainBuffer
-  pixel <- io $ SDL.mapRGB (SDL.surfaceGetPixelFormat screen) 0 50 0
+  pixel <- io $ SDL.mapRGB (SDL.surfaceGetPixelFormat screen) 0 20 0
   _ <- io $ SDL.fillRect screen Nothing pixel
   return ()
 
@@ -163,7 +166,21 @@ renderEmuState st = do
   renderText (TextSpan 500 130 white (pack $ "SP: 0x" ++ showWord valSP))
   renderText (TextSpan 500 140 white (pack $ "O:  0x" ++ showWord valO))
 
+  let cys = cycles st
+  renderText (TextSpan 500 160 red (pack $ "CPU cycles " ++ show cys))
+
+  let pcnums = [valPC ..]
+      pcdir = fromIntegral valPC
+      pcdisasm = take 20 $ disasm' . zip pcnums . dumps pcdir . emuCpu $ st
+
+  forM_ (zip [0..] pcdisasm) $ \(i,(mdir,inst)) -> do
+    renderText (TextSpan 20 (50 + (i*10)) white
+                (pack $ showWord mdir ++ ": " ++ showDIns inst))
+
+  renderText (TextSpan 20 35 lightblue "PC Disassembly")
+
   renderText (TextSpan 10 460 white "[S] Step, [Q] Quit")
+
   return ()
 
 -- -----------------------------------------------------------------------------
