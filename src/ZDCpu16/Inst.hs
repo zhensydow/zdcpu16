@@ -17,9 +17,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
 module ZDCpu16.Inst(
   -- * Types
-  OpCode(..),
+  OpCode(..), OpVal(..),
   -- * Functions
-  opcode, basicA, basicB, nonbasicA, isBasicInstruction, instructionLength,
+  opcode, opval, basicA, basicB, nonbasicA, isBasicInstruction, 
+  instructionLength,
   -- * Operations
   addOverflow, subUnderflow, mulOverflow, divUnderflow, modChecked,
   shlOverflow, shrUnderflow
@@ -67,11 +68,52 @@ nonBasicOp 0x01 = JSR
 nonBasicOp _ = error "non basic op"
 
 -- -----------------------------------------------------------------------------
+data OpVal = VReg ! Word16 
+           | VMemReg ! Word16 
+           | VMemWordReg ! Word16 ! Word16 
+           | VPop | VPeek | VPush | VSP | VPC | VO 
+           | VMemWord ! Word16 
+           | VWord ! Word16 
+           | VLiteral ! Word16
+           deriving( Show )
+
+-- -----------------------------------------------------------------------------
+opval :: Word16 -> OpVal
+opval v
+  -- 0x00-0x07: register (A, B, C, X, Y, Z, I or J, in that order)
+  | v >= 0 && v <= 0x07 = VReg v
+  -- 0x08-0x0f: [register]
+  | v >= 0x8 && v <= 0x0f = VMemReg (v - 0x08)
+  -- 0x10-0x17: [next word + register]
+  | v >= 0x10 && v <= 0x17 = VMemWordReg (v - 0x10) 0
+  -- 0x18: POP / [SP++]
+  | v == 0x18 = VPop
+  -- 0x19: PEEK / [SP]
+  | v == 0x19 = VPeek
+  -- 0x1a: PUSH / [--SP]
+  | v == 0x1a = VPush
+  -- 0x1b: SP
+  | v == 0x1b = VSP
+  -- 0x1c: PC
+  | v == 0x1c = VPC
+  -- 0x1d: O
+  | v == 0x1d = VO
+  -- 0x1e: [next word]
+  | v == 0x1e = VMemWord 0
+  -- 0x1f: next word (literal)
+  | v == 0x1f = VWord 0
+  -- 0x20-0x3f: literal value 0x00-0x1f (literal)
+  | v >= 0x20 && v <= 0x3f = VLiteral (v - 0x20)
+  | otherwise = error $ "invalid opval " ++ show v
+
+-- -----------------------------------------------------------------------------
 basicA :: Word16 -> Word16
 basicA val = (val `shiftR` 4) .&. 0x3f
+{-# INLINE basicA #-}
 
 basicB :: Word16 -> Word16
 basicB val = (val `shiftR` 10) .&. 0x3f
+{-# INLINE basicB #-}
 
 nonbasicA :: Word16 -> Word16
 nonbasicA = basicB
@@ -80,6 +122,7 @@ nonbasicA = basicB
 -- -----------------------------------------------------------------------------
 isBasicInstruction :: Word16 -> Bool
 isBasicInstruction val = (val .&. 0xf) /= 0
+{-# INLINE isBasicInstruction #-}
 
 -- -----------------------------------------------------------------------------
 instructionLength :: Word16 -> Word16
