@@ -30,6 +30,7 @@ module ZDCpu16.EmuRender(
 import Control.Monad.IO.Class( MonadIO, liftIO )
 import Control.Monad.State( MonadState, StateT, runStateT, get )
 import Data.Text( Text, unpack, pack )
+import Data.Version( showVersion )
 import Data.Word( Word8 )
 import qualified Graphics.UI.SDL as SDL(
   Surface, InitFlag(..), Color(..), Rect(..), init, setVideoMode, setCaption,
@@ -39,7 +40,8 @@ import qualified Graphics.UI.SDL.TTF as SDLTTF(
 import ZDCpu16.EmuState( EmuState(..) )
 import ZDCpu16.Hardware(
   DCPU_16(..), reg_A, reg_B, reg_C, reg_X, reg_Y, reg_Z, reg_I, reg_J )
-import Paths_zdcpu16( getDataFileName )
+import ZDCpu16.Util( showWord )
+import Paths_zdcpu16( version, getDataFileName )
 
 -- -----------------------------------------------------------------------------
 black, white, red, green, blue :: (Word8, Word8, Word8)
@@ -73,7 +75,7 @@ mkRenderState = do
   _ <- SDL.init [SDL.InitVideo]
   _ <- SDLTTF.init
   _ <- SDL.setVideoMode 640 480 32 []
-  SDL.setCaption "DCPU-16" ""
+  SDL.setCaption "Zhen DCPU-16" ""
   filename <- getDataFileName "ProggyCleanSZ.ttf"
   font <- SDLTTF.openFont filename 16
   return $! RS font
@@ -134,7 +136,8 @@ renderRectangle (Rectangle x y w h (r,g,b)) = do
 -- -----------------------------------------------------------------------------
 renderEmuState :: EmuState -> Render ()
 renderEmuState st = do
-  renderText (TextSpan 10 10 (255,255,0) "Prueba")
+  let vrs = showVersion version
+  renderText (TextSpan 10 10 (255,255,0) (pack $ "Zhen DCPU-16 " ++ vrs))
   let valA = reg_A . emuCpu $ st
       valB = reg_B . emuCpu $ st
       valC = reg_C . emuCpu $ st
@@ -143,23 +146,24 @@ renderEmuState st = do
       valZ = reg_Z . emuCpu $ st
       valI = reg_I . emuCpu $ st
       valJ = reg_J . emuCpu $ st
-  renderText (TextSpan 200 20 white (pack $ "A: " ++ show valA))
-  renderText (TextSpan 200 30 white (pack $ "B: " ++ show valB))
-  renderText (TextSpan 200 40 white (pack $ "C: " ++ show valC))
-  renderText (TextSpan 200 50 white (pack $ "X: " ++ show valX))
-  renderText (TextSpan 200 60 white (pack $ "Y: " ++ show valY))
-  renderText (TextSpan 200 70 white (pack $ "Z: " ++ show valZ))
-  renderText (TextSpan 200 80 white (pack $ "I: " ++ show valI))
-  renderText (TextSpan 200 90 white (pack $ "J: " ++ show valJ))
+  renderText (TextSpan 500 30 white (pack $ "A:  0x" ++ showWord valA))
+  renderText (TextSpan 500 40 white (pack $ "B:  0x" ++ showWord valB))
+  renderText (TextSpan 500 50 white (pack $ "C:  0x" ++ showWord valC))
+  renderText (TextSpan 500 60 white (pack $ "X:  0x" ++ showWord valX))
+  renderText (TextSpan 500 70 white (pack $ "Y:  0x" ++ showWord valY))
+  renderText (TextSpan 500 80 white (pack $ "Z:  0x" ++ showWord valZ))
+  renderText (TextSpan 500 90 white (pack $ "I:  0x" ++ showWord valI))
+  renderText (TextSpan 500 100 white (pack $ "J:  0x" ++ showWord valJ))
 
   let valPC = programCounter . emuCpu $ st
       valSP = stackPointer . emuCpu $ st
       valO = overflow . emuCpu $ st
 
-  renderText (TextSpan 200 110 white (pack $ "PC: " ++ show valPC))
-  renderText (TextSpan 200 120 white (pack $ "SP: " ++ show valSP))
-  renderText (TextSpan 200 130 white (pack $ "O: " ++ show valO))
+  renderText (TextSpan 500 120 white (pack $ "PC: 0x" ++ showWord valPC))
+  renderText (TextSpan 500 130 white (pack $ "SP: 0x" ++ showWord valSP))
+  renderText (TextSpan 500 140 white (pack $ "O:  0x" ++ showWord valO))
 
+  renderText (TextSpan 10 460 white "[S] Step, [Q] Quit")
   return ()
 
 -- -----------------------------------------------------------------------------
