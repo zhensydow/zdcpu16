@@ -19,7 +19,7 @@ module ZDCpu16.Inst(
   -- * Types
   OpCode(..), OpVal(..),
   -- * Functions
-  opcode, opval, basicA, basicB, nonbasicA, isBasicInstruction, 
+  opcode, opval, basicA, basicB, nonbasicA, isBasicInstruction,
   instructionLength,
   -- * Operations
   addOverflow, subUnderflow, mulOverflow, divUnderflow, modChecked,
@@ -68,12 +68,12 @@ nonBasicOp 0x01 = JSR
 nonBasicOp _ = error "non basic op"
 
 -- -----------------------------------------------------------------------------
-data OpVal = VReg ! Word16 
-           | VMemReg ! Word16 
-           | VMemWordReg ! Word16 ! Word16 
-           | VPop | VPeek | VPush | VSP | VPC | VO 
-           | VMemWord ! Word16 
-           | VWord ! Word16 
+data OpVal = VReg ! Word16
+           | VMemReg ! Word16
+           | VMemWordReg ! Word16 ! Word16
+           | VPop | VPeek | VPush | VSP | VPC | VO
+           | VMemWord ! Word16
+           | VWord ! Word16
            | VLiteral ! Word16
            deriving( Show )
 
