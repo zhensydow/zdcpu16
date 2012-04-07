@@ -17,6 +17,7 @@ Cabal-version:       >=1.10
 Data-Dir:            data
 Data-Files:          *.ttf
 Extra-source-files:  README.org
+                     PROGGY_LICENSE
 
 Library
   Hs-source-dirs:      src
