@@ -36,15 +36,15 @@ Library
 Executable zdcpu16-emu
   Hs-source-dirs:      src
   Default-language:    Haskell2010
-
   Main-is:             zddcpu16_emu_main.hs
-
-  -- Packages needed in order to build this package.
   Build-depends:       base==4.3.*, mtl==2.0.*, transformers==0.2.*, array==0.3.*, SDL==0.6.*, SDL-ttf==0.6.*, text==0.11.*
-
-  -- Modules not exported by this package.
-  -- Other-modules:
-
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:
+  Ghc-options:         -Wall -O2 -funbox-strict-fields
+
+Executable zdcpu16-con
+  Hs-source-dirs:      src
+  Default-language:    Haskell2010
+  Main-is:             zddcpu16_con_main.hs
+  Build-depends:       base==4.3.*
   Ghc-options:         -Wall -O2 -funbox-strict-fields
