@@ -15,42 +15,40 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
-module ZDCpu16.ConRPC( serverRPCMethods, clAdd, clQuit ) where
+module ZDCpu16.ConRPC( serverRPCMethods, clQuit, clWriteVRAM ) where
 
 -- -----------------------------------------------------------------------------
 import Control.Concurrent.MVar( MVar, modifyMVar_ )
 import qualified Network.MessagePackRpc.Server as MsgSRV( RpcMethod, fun )
 import Network.MessagePackRpc.Client( RpcMethod, method )
-import ZDCpu16.ConState( ConState(..) )
+import ZDCpu16.ConState( ConState(..), writeVRAM )
 
 -- -----------------------------------------------------------------------------
-add :: Int -> Int -> IO Int
-add x y = do
-  putStrLn "executed ADD"
-  return $ x + y
-
--- -----------------------------------------------------------------------------
-quit :: MVar ConState -> IO ()
-quit csRef = do
+_quit :: MVar ConState -> IO ()
+_quit csRef = do
   putStrLn "executed QUIT"
-  
   modifyMVar_ csRef $ \cs -> return cs{ csEnd = True }
-  
   return ()
-  
+
+-- -----------------------------------------------------------------------------
+_writeVRAM :: MVar ConState -> Int -> Int -> IO ()
+_writeVRAM csRef dir val = do
+  putStrLn "executed WRITEVRAM"
+  modifyMVar_ csRef (return . writeVRAM dir (fromIntegral val))
+  return ()
+
 -- -----------------------------------------------------------------------------
 serverRPCMethods :: MVar ConState -> [(String, MsgSRV.RpcMethod)]
-serverRPCMethods csRef = [ ("add", MsgSRV.fun add)
-                     , ("con_quit", MsgSRV.fun $ quit csRef)
-                   --, ("writeVidMem", fun writeVidMem)
-                   ]
-
--- -----------------------------------------------------------------------------
-clAdd :: RpcMethod (Int -> Int -> IO Int)
-clAdd = method "add"
+serverRPCMethods csRef = [ ("con_quit", MsgSRV.fun $ _quit csRef)
+			 , ("con_writeVRAM", MsgSRV.fun $ _writeVRAM csRef)
+		   ]
 
 -- -----------------------------------------------------------------------------
 clQuit :: RpcMethod (IO ())
 clQuit = method "con_quit"
+
+-- -----------------------------------------------------------------------------
+clWriteVRAM :: RpcMethod (Int -> Int -> IO ())
+clWriteVRAM = method "con_writeVRAM"
 
 -- -----------------------------------------------------------------------------
