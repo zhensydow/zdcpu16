@@ -29,6 +29,7 @@ Library
                        ZDCpu16.Disasm
                        ZDCpu16.EmuState
                        ZDCpu16.DebugRender
+                       ZDCpu16.ConState
                        ZDCpu16.ConRPC
                        ZDCpu16.ConRender
   Other-modules:       Paths_zdcpu16
