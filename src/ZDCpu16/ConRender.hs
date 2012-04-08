@@ -15,17 +15,21 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
+{-# LANGUAGE OverloadedStrings #-}
 module ZDCpu16.ConRender( 
   RenderState, mkRenderState, renderConsole ) where
 
 -- -----------------------------------------------------------------------------
 import Control.Monad( forM_ )
+import Data.Array.Unboxed( assocs )
+import Data.Bits( (.&.) )
+import Data.Char( chr )
 import Data.Text( pack )
 import qualified Graphics.UI.SDL as SDL( 
   InitFlag(..), init, setVideoMode, setCaption )
 import qualified Graphics.UI.SDL.TTF as SDLTTF( init, openFont )
 import ZDCpu16.Render( 
-  RenderState, Render, TextSpan(..), newRenderState, renderText )
+  RenderState, Render, TextSpan(..), newRenderState, renderText, white )
 import ZDCpu16.ConState( ConState(..) )
 import Paths_zdcpu16( getDataFileName )
 
@@ -43,9 +47,12 @@ mkRenderState = do
 -- -----------------------------------------------------------------------------
 renderConsole :: ConState -> Render ()
 renderConsole cs = do
-  renderText (TextSpan 0 0 (255,255,0) (pack $ "          1         2         3 "))
-  forM_ [1..12] $ \i -> do
-    renderText (TextSpan 0 (25*i) (255,255,0) (pack $ "12345678901234567890123456789012"))
+  forM_ (assocs . csVRAM $ cs) $ \(i,w) -> do
+    let (y,x) = i `divMod` 32
+        c = pack [chr . fromIntegral $ w .&. 0xff]
+    renderText (TextSpan (x*20) (y*30) white c)
+    return ()
+  
   return ()
   
 -- -----------------------------------------------------------------------------
