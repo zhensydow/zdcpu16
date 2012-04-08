@@ -19,30 +19,46 @@ module Main where
 
 -- -----------------------------------------------------------------------------
 import Control.Concurrent( forkIO, killThread )
-import qualified Graphics.UI.SDL as SDL( Event(..), waitEvent )
+import Control.Concurrent.MVar( MVar, newMVar, readMVar )
+import qualified Graphics.UI.SDL as SDL( Event(..), pollEvent )
 import Network.MessagePackRpc.Server( serve )
 import ZDCpu16.ConRPC( serverRPCMethods )
-import ZDCpu16.ConRender( mkRenderState )
+import ZDCpu16.ConRender( RenderState, mkRenderState )
+import ZDCpu16.ConState( ConState(..), mkConState )
 
 -- -----------------------------------------------------------------------------
---mainLoop :: RenderState -> EmuState -> IO ()
-mainLoop rst = do
-  e <- SDL.waitEvent
+isEnded :: MVar ConState -> IO Bool
+isEnded csRef = do
+  cs <- readMVar csRef
+  return . csEnd $ cs
+  
+-- -----------------------------------------------------------------------------
+mainLoop :: RenderState -> MVar ConState -> IO ()
+mainLoop rst csRef = do
+  e <- SDL.pollEvent
   case e of
     SDL.Quit -> return ()
-    _ -> mainLoop rst
+    SDL.NoEvent -> do
+      quit <- isEnded csRef
+      if quit 
+        then return ()
+        else mainLoop rst csRef
+    _ -> do
+      mainLoop rst csRef
 
 -- -----------------------------------------------------------------------------
 main :: IO ()
 main = do
+  csRef <- newMVar $ mkConState
+  
   msgTID <- forkIO $ do
     putStrLn "start RPC server"
-    serve 1234 serverRPCMethods
+    serve 1234 $ serverRPCMethods csRef
     putStrLn "end RPC server"
 
   putStrLn "start sdl server"
   rst <- mkRenderState
-  mainLoop rst
+  mainLoop rst csRef
   putStrLn "end sdl server"
 
   killThread msgTID

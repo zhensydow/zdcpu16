@@ -15,11 +15,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
-module ZDCpu16.ConRPC( serverRPCMethods, clAdd ) where
+module ZDCpu16.ConRPC( serverRPCMethods, clAdd, clQuit ) where
 
 -- -----------------------------------------------------------------------------
-import Network.MessagePackRpc.Server( fun )
+import Control.Concurrent.MVar( MVar, modifyMVar_ )
+import qualified Network.MessagePackRpc.Server as MsgSRV( RpcMethod, fun )
 import Network.MessagePackRpc.Client( RpcMethod, method )
+import ZDCpu16.ConState( ConState(..) )
 
 -- -----------------------------------------------------------------------------
 add :: Int -> Int -> IO Int
@@ -28,12 +30,27 @@ add x y = do
   return $ x + y
 
 -- -----------------------------------------------------------------------------
-serverRPCMethods = [ ("add", fun add)
+quit :: MVar ConState -> IO ()
+quit csRef = do
+  putStrLn "executed QUIT"
+  
+  modifyMVar_ csRef $ \cs -> return cs{ csEnd = True }
+  
+  return ()
+  
+-- -----------------------------------------------------------------------------
+serverRPCMethods :: MVar ConState -> [(String, MsgSRV.RpcMethod)]
+serverRPCMethods csRef = [ ("add", MsgSRV.fun add)
+                     , ("con_quit", MsgSRV.fun $ quit csRef)
                    --, ("writeVidMem", fun writeVidMem)
                    ]
 
 -- -----------------------------------------------------------------------------
 clAdd :: RpcMethod (Int -> Int -> IO Int)
 clAdd = method "add"
+
+-- -----------------------------------------------------------------------------
+clQuit :: RpcMethod (IO ())
+clQuit = method "con_quit"
 
 -- -----------------------------------------------------------------------------
