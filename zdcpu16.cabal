@@ -18,6 +18,7 @@ Data-Dir:            data
 Data-Files:          *.ttf
 Extra-source-files:  README.org
                      FONT_LICENSES
+                     examples/*.bin
 
 Library
   Hs-source-dirs:      src
