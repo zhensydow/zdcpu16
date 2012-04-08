@@ -18,8 +18,34 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Main where
 
 -- -----------------------------------------------------------------------------
+import Control.Concurrent( forkIO, killThread )
+import qualified Graphics.UI.SDL as SDL( Event(..), waitEvent )
+import Network.MessagePackRpc.Server( serve )
+import ZDCpu16.ConRPC( serverRPCMethods )
+import ZDCpu16.ConRender( mkRenderState )
+
+-- -----------------------------------------------------------------------------
+--mainLoop :: RenderState -> EmuState -> IO ()
+mainLoop rst = do
+  e <- SDL.waitEvent
+  case e of
+    SDL.Quit -> return ()
+    _ -> mainLoop rst
+
+-- -----------------------------------------------------------------------------
 main :: IO ()
 main = do
+  msgTID <- forkIO $ do
+    putStrLn "start RPC server"
+    serve 1234 serverRPCMethods
+    putStrLn "end RPC server"
+
+  putStrLn "start sdl server"
+  rst <- mkRenderState
+  mainLoop rst
+  putStrLn "end sdl server"
+
+  killThread msgTID
   putStrLn "Exit"
 
 -- -----------------------------------------------------------------------------
