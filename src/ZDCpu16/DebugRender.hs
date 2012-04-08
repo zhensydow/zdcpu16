@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
 {-# LANGUAGE GeneralizedNewtypeDeriving, OverloadedStrings #-}
-module ZDCpu16.EmuRender(
+module ZDCpu16.DebugRender(
   -- * Render Monad
   RenderState, runRender, mkRenderState,  clearScreen, renderText,
   renderRectangle, renderEmuState,

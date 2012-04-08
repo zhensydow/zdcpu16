@@ -21,7 +21,7 @@ module Main where
 import Data.Word( Word16 )
 import qualified Graphics.UI.SDL as SDL(
   Event(..), SDLKey(..), Keysym(..), waitEvent )
-import ZDCpu16.EmuRender(
+import ZDCpu16.DebugRender(
   RenderState, runRender, mkRenderState, clearScreen, renderEmuState )
 import ZDCpu16.EmuState( EmuState(..), mkEmuState )
 import ZDCpu16.Hardware( loads )

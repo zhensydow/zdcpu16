@@ -28,7 +28,7 @@ Library
                        ZDCpu16.Inst
                        ZDCpu16.Disasm
                        ZDCpu16.EmuState
-                       ZDCpu16.EmuRender
+                       ZDCpu16.DebugRender
   Other-modules:       Paths_zdcpu16
   Build-depends:       base==4.3.*, mtl==2.0.*, transformers==0.2.*, array==0.3.*, SDL==0.6.*, SDL-ttf==0.6.*, text==0.11.*
   Ghc-options:         -Wall -O2 -funbox-strict-fields
