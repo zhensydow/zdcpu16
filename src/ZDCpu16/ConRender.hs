@@ -16,19 +16,19 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
 {-# LANGUAGE OverloadedStrings #-}
-module ZDCpu16.ConRender( 
+module ZDCpu16.ConRender(
   RenderState, mkRenderState, renderConsole ) where
 
 -- -----------------------------------------------------------------------------
-import Control.Monad( forM_ )
+import Control.Monad( forM_, when )
 import Data.Array.Unboxed( assocs )
 import Data.Bits( (.&.) )
-import Data.Char( chr )
+import Data.Char( chr, isPrint )
 import Data.Text( pack )
-import qualified Graphics.UI.SDL as SDL( 
+import qualified Graphics.UI.SDL as SDL(
   InitFlag(..), init, setVideoMode, setCaption )
 import qualified Graphics.UI.SDL.TTF as SDLTTF( init, openFont )
-import ZDCpu16.Render( 
+import ZDCpu16.Render(
   RenderState, Render, TextSpan(..), newRenderState, renderText, white )
 import ZDCpu16.ConState( ConState(..) )
 import Paths_zdcpu16( getDataFileName )
@@ -49,10 +49,9 @@ renderConsole :: ConState -> Render ()
 renderConsole cs = do
   forM_ (assocs . csVRAM $ cs) $ \(i,w) -> do
     let (y,x) = i `divMod` 32
-        c = pack [chr . fromIntegral $ w .&. 0xff]
-    renderText (TextSpan (x*20) (y*30) white c)
-    return ()
-  
+	c = chr . fromIntegral $ w .&. 0xff
+    when (isPrint c) $ renderText (TextSpan (x*20) (y*30) white $ pack [c])
+
   return ()
-  
+
 -- -----------------------------------------------------------------------------
