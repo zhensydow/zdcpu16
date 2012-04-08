@@ -18,12 +18,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module ZDCpu16.ConState( ConState(..), mkConState ) where
 
 -- -----------------------------------------------------------------------------
+import Data.Array.Unboxed( UArray, listArray )
+import Data.Char( ord )
+import Data.Word( Word16 )
+
+-- -----------------------------------------------------------------------------
 data ConState = ConState 
-                { csEnd :: ! Bool }
+                { csEnd :: ! Bool 
+                , csVRAM :: UArray Int Word16 }
               deriving( Show )
                       
 -- -----------------------------------------------------------------------------
+initialVRAM :: UArray Int Word16
+initialVRAM = listArray (0,32*12 - 1) . repeat . fromIntegral . ord $ 'C'
+
 mkConState :: ConState
-mkConState = ConState False
+mkConState = ConState False initialVRAM
 
 -- -----------------------------------------------------------------------------
