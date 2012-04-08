@@ -15,62 +15,28 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
-{-# LANGUAGE GeneralizedNewtypeDeriving, OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
 module ZDCpu16.DebugRender(
-  -- * Render Monad
-  RenderState, runRender, mkRenderState,  clearScreen, renderText,
-  renderRectangle, renderEmuState,
-  -- * Types
-  TextSpan(..), Rectangle(..),
-  -- * Colors
-  black, white, red, green, blue
+  RenderState, runRender, mkRenderState,  clearScreen, renderText, 
+  renderEmuState,
   ) where
 
 -- -----------------------------------------------------------------------------
 import Control.Monad( forM_ )
-import Control.Monad.IO.Class( MonadIO, liftIO )
-import Control.Monad.State( MonadState, StateT, runStateT, get )
-import Data.Text( Text, unpack, pack )
+import Data.Text( pack )
 import Data.Version( showVersion )
-import Data.Word( Word8 )
 import qualified Graphics.UI.SDL as SDL(
-  Surface, InitFlag(..), Color(..), Rect(..), init, setVideoMode, setCaption,
-  flip, blitSurface, mapRGB, fillRect, surfaceGetPixelFormat, getVideoSurface )
-import qualified Graphics.UI.SDL.TTF as SDLTTF(
-  Font, init, openFont, renderTextBlended, textSize )
+  InitFlag(..), init, setVideoMode, setCaption )
+import qualified Graphics.UI.SDL.TTF as SDLTTF( init, openFont )
+import ZDCpu16.Render( 
+  RenderState, Render, TextSpan(..), newRenderState, runRender, clearScreen, 
+  renderText, white, red, lightblue )
 import ZDCpu16.Disasm( disasm', showDIns )
 import ZDCpu16.EmuState( EmuState(..) )
 import ZDCpu16.Hardware(
   DCPU_16(..), reg_A, reg_B, reg_C, reg_X, reg_Y, reg_Z, reg_I, reg_J, dumps )
 import ZDCpu16.Util( showWord )
 import Paths_zdcpu16( version, getDataFileName )
-
--- -----------------------------------------------------------------------------
-black, white, red, green, blue, lightblue :: (Word8, Word8, Word8)
-black = (0,0,0)
-white = (255,255,255)
-red = (255,0,0)
-green = (0,255,0)
-blue = (0,0,255)
-lightblue = (173,216,230)
-
--- -----------------------------------------------------------------------------
-data TextSpan = TextSpan
-                { txtX :: ! Int
-                , txtY :: ! Int
-                , txtColor :: !(Word8, Word8, Word8)
-                , txtData :: ! Text }
-
--- -----------------------------------------------------------------------------
-data Rectangle = Rectangle
-                 { rectX :: ! Int
-                 , rectY :: ! Int
-                 , rectW :: ! Int
-                 , rectH :: ! Int
-                 , rectColor :: !(Word8, Word8, Word8) }
-
--- -----------------------------------------------------------------------------
-data RenderState = RS { renderFont :: !SDLTTF.Font }
 
 -- -----------------------------------------------------------------------------
 mkRenderState :: IO RenderState
@@ -81,60 +47,7 @@ mkRenderState = do
   SDL.setCaption "Zhen DCPU-16" ""
   filename <- getDataFileName "ProggyCleanSZ.ttf"
   font <- SDLTTF.openFont filename 16
-  return $! RS font
-
--- -----------------------------------------------------------------------------
-newtype Render a = Render
-                      { runR :: StateT RenderState IO a }
-                    deriving( Functor, Monad, MonadIO
-                            , MonadState RenderState )
-
--- -----------------------------------------------------------------------------
-runRender :: MonadIO m => Render a -> RenderState -> m (a, RenderState)
-runRender renderf rs = liftIO $ do
-  v <- runStateT (runR renderf) rs
-  screen <- SDL.getVideoSurface
-  SDL.flip screen
-  return v
-
--- -----------------------------------------------------------------------------
-io :: IO a -> Render a
-io = liftIO
-
--- -----------------------------------------------------------------------------
-getMainBuffer :: Render (SDL.Surface)
-getMainBuffer = io SDL.getVideoSurface
-
--- -----------------------------------------------------------------------------
-getMainFont :: Render (SDLTTF.Font)
-getMainFont = fmap renderFont $ get
-
--- -----------------------------------------------------------------------------
-clearScreen :: Render ()
-clearScreen = do
-  screen <- getMainBuffer
-  pixel <- io $ SDL.mapRGB (SDL.surfaceGetPixelFormat screen) 0 20 0
-  _ <- io $ SDL.fillRect screen Nothing pixel
-  return ()
-
--- -----------------------------------------------------------------------------
-renderText :: TextSpan -> Render ()
-renderText (TextSpan x y (r,g,b) txt) = do
-  screen <- getMainBuffer
-  font <- getMainFont
-  let str = unpack txt
-  (w,h) <- io $ SDLTTF.textSize font str
-  txtBuff <- io $ SDLTTF.renderTextBlended font str (SDL.Color r g b)
-  _ <- io $ SDL.blitSurface txtBuff Nothing screen (Just $ SDL.Rect x y w h)
-  return ()
-
--- -----------------------------------------------------------------------------
-renderRectangle :: Rectangle -> Render ()
-renderRectangle (Rectangle x y w h (r,g,b)) = do
-  screen <- getMainBuffer
-  pixel <- io $ SDL.mapRGB (SDL.surfaceGetPixelFormat screen) r g b
-  _ <- io $ SDL.fillRect screen (Just $ SDL.Rect x y w h) pixel
-  return ()
+  return $! newRenderState font
 
 -- -----------------------------------------------------------------------------
 renderEmuState :: EmuState -> Render ()
