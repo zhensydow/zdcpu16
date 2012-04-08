@@ -30,11 +30,12 @@ import ZDCpu16.Inst(
   instructionLength, addOverflow, subUnderflow, mulOverflow, divUnderflow,
   modChecked, shlOverflow, shrUnderflow )
 import ZDCpu16.EmuState( EmuState(..) )
+import ZDCpu16.ConRPC( clWriteVRAM )
 
 -- -----------------------------------------------------------------------------
 newtype Emulator a = Emulator
-                     { runEmul :: StateT EmuState IO a }
-                   deriving( Functor, Monad, MonadIO, MonadState EmuState )
+		     { runEmul :: StateT EmuState IO a }
+		   deriving( Functor, Monad, MonadIO, MonadState EmuState )
 
 -- -----------------------------------------------------------------------------
 runEmulator :: Emulator a -> EmuState -> IO (a, EmuState)
@@ -114,13 +115,16 @@ setMem dir val = do
   let newcpu = emuCpu st
       oldram = ram newcpu
   put st{ emuCpu = newcpu{ ram = oldram // [(fromIntegral dir,val)] } }
+  if dir >= 0x8000
+    then liftIO $ clWriteVRAM (conComm st) (fromIntegral (dir - 0x8000)) (fromIntegral val)
+    else return ()
 
 -- -----------------------------------------------------------------------------
 data LVal = LRegister ! Int
-          | LMem Word16
-          | LPC | LSP | LO
-          | LLiteral Word16
-          deriving( Show )
+	  | LMem Word16
+	  | LPC | LSP | LO
+	  | LLiteral Word16
+	  deriving( Show )
 
 -- -----------------------------------------------------------------------------
 getRVal :: Word16 -> Emulator Word16
@@ -306,7 +310,7 @@ setLValIns ins cost f = do
 
 -- -----------------------------------------------------------------------------
 setLValOIns :: Word16 -> Integer -> (Word16 -> Word16 -> (Word16, Word16))
-               -> Emulator ()
+	       -> Emulator ()
 setLValOIns ins cost f = do
   incCycles cost
   aref <- getLValRef (basicA ins)
