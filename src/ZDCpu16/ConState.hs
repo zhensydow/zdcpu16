@@ -19,7 +19,6 @@ module ZDCpu16.ConState( ConState(..), mkConState, writeVRAM ) where
 
 -- -----------------------------------------------------------------------------
 import Data.Array.Unboxed( UArray, listArray, (//) )
-import Data.Char( ord )
 import Data.Word( Word16 )
 
 -- -----------------------------------------------------------------------------
@@ -33,7 +32,7 @@ vramSize :: Int
 vramSize = 32*12
 
 initialVRAM :: UArray Int Word16
-initialVRAM = listArray (0,vramSize - 1) . repeat . fromIntegral . ord $ 'C'
+initialVRAM = listArray (0,vramSize - 1) . repeat $ 0
 
 mkConState :: ConState
 mkConState = ConState False initialVRAM
