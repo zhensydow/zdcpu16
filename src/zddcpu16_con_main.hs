@@ -22,8 +22,9 @@ import Control.Concurrent( forkIO, killThread )
 import Control.Concurrent.MVar( MVar, newMVar, readMVar )
 import qualified Graphics.UI.SDL as SDL( Event(..), pollEvent )
 import Network.MessagePackRpc.Server( serve )
+import ZDCpu16.Render( runRender, clearScreen )
 import ZDCpu16.ConRPC( serverRPCMethods )
-import ZDCpu16.ConRender( RenderState, mkRenderState )
+import ZDCpu16.ConRender( RenderState, mkRenderState, renderConsole )
 import ZDCpu16.ConState( ConState(..), mkConState )
 
 -- -----------------------------------------------------------------------------
@@ -35,6 +36,8 @@ isEnded csRef = do
 -- -----------------------------------------------------------------------------
 mainLoop :: RenderState -> MVar ConState -> IO ()
 mainLoop rst csRef = do
+  est <- readMVar csRef 
+  _ <- runRender (clearScreen >> renderConsole est) rst
   e <- SDL.pollEvent
   case e of
     SDL.Quit -> return ()

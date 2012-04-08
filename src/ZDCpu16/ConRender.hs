@@ -15,13 +15,18 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
-module ZDCpu16.ConRender( RenderState, mkRenderState ) where
+module ZDCpu16.ConRender( 
+  RenderState, mkRenderState, renderConsole ) where
 
 -- -----------------------------------------------------------------------------
+import Control.Monad( forM_ )
+import Data.Text( pack )
 import qualified Graphics.UI.SDL as SDL( 
   InitFlag(..), init, setVideoMode, setCaption )
 import qualified Graphics.UI.SDL.TTF as SDLTTF( init, openFont )
-import ZDCpu16.Render( RenderState, newRenderState )
+import ZDCpu16.Render( 
+  RenderState, Render, TextSpan(..), newRenderState, renderText )
+import ZDCpu16.ConState( ConState(..) )
 import Paths_zdcpu16( getDataFileName )
 
 -- -----------------------------------------------------------------------------
@@ -32,7 +37,15 @@ mkRenderState = do
   _ <- SDL.setVideoMode 640 480 32 []
   SDL.setCaption "Zhen DCPU-16 Console" ""
   filename <- getDataFileName "Inconsolata.ttf"
-  font <- SDLTTF.openFont filename 16
+  font <- SDLTTF.openFont filename 24
   return $! newRenderState font
 
+-- -----------------------------------------------------------------------------
+renderConsole :: ConState -> Render ()
+renderConsole cs = do
+  renderText (TextSpan 0 0 (255,255,0) (pack $ "          1         2         3 "))
+  forM_ [1..12] $ \i -> do
+    renderText (TextSpan 0 (25*i) (255,255,0) (pack $ "12345678901234567890123456789012"))
+  return ()
+  
 -- -----------------------------------------------------------------------------
