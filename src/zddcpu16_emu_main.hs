@@ -32,11 +32,12 @@ import ZDCpu16.ZDCpu16( runEmulator, stepEmulator )
 -- -----------------------------------------------------------------------------
 testProgram :: [Word16]
 testProgram = [ 0x7c01, 0x0030, 0x7de1, 0x1000, 0x0020
-              , 0x7803, 0x1000, 0xc00d, 0x7dc1, 0x001a
+              , 0x7803, 0x1000, 0xc00d, 0x7dc1, 0x001d
               , 0xa861, 0x7c01, 0x2000, 0x2161, 0x2000
               , 0x8463, 0x806d, 0x7dc1, 0x000d, 0x9031
-              , 0x7c10, 0x0018, 0x7dc1, 0x001a, 0x9037
-              , 0x61c1, 0x7dc1, 0x001a, 0x0000, 0x0000 ]
+              , 0x7c10, 0x001b, 0x7de1, 0x8000, 0x0048
+              , 0x7dc1, 0x001d, 0x9037, 0x61c1, 0x7dc1
+              , 0x001d, 0x0000, 0x0000 ]
 
 -- -----------------------------------------------------------------------------
 mainLoop :: RenderState -> EmuState -> IO ()
@@ -50,7 +51,7 @@ mainLoop rst est = do
         SDL.SDLK_ESCAPE -> return ()
         SDL.SDLK_q -> return ()
         SDL.SDLK_s -> do
-          let (_,newEst) = runEmulator stepEmulator est
+          (_,newEst) <- runEmulator stepEmulator est
           mainLoop rst newEst
         _ -> do
           print key

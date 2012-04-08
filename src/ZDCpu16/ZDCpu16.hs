@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module ZDCpu16.ZDCpu16( Emulator, runEmulator, stepEmulator ) where
 
 -- -----------------------------------------------------------------------------
-import Control.Monad.Identity( Identity, runIdentity )
+import Control.Monad.IO.Class( MonadIO, liftIO )
 import Control.Monad.State( StateT, MonadState(..), runStateT )
 import Data.Array.Unboxed( (!), (//) )
 import Data.Bits( xor, (.&.), (.|.) );
@@ -33,12 +33,12 @@ import ZDCpu16.EmuState( EmuState(..) )
 
 -- -----------------------------------------------------------------------------
 newtype Emulator a = Emulator
-                     { runEmul :: StateT EmuState Identity a }
-                   deriving( Functor, Monad, MonadState EmuState )
+                     { runEmul :: StateT EmuState IO a }
+                   deriving( Functor, Monad, MonadIO, MonadState EmuState )
 
 -- -----------------------------------------------------------------------------
-runEmulator :: Emulator a -> EmuState -> (a, EmuState)
-runEmulator emulator st = runIdentity (runStateT (runEmul emulator) st)
+runEmulator :: Emulator a -> EmuState -> IO (a, EmuState)
+runEmulator emulator st = runStateT (runEmul emulator) st
 
 -- -----------------------------------------------------------------------------
 incCycles :: Integer -> Emulator ()
