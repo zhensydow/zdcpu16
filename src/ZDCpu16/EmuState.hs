@@ -19,16 +19,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module ZDCpu16.EmuState( EmuState(..), mkEmuState ) where
 
 -- -----------------------------------------------------------------------------
+import Network.MessagePackRpc.Client( Connection )
 import ZDCpu16.Hardware( DCPU_16(..), initialDCPU )
 
 -- -----------------------------------------------------------------------------
 data EmuState = EmuState
                 { emuCpu :: ! DCPU_16
-                , cycles :: ! Integer }
-              deriving( Show )
+                , cycles :: ! Integer 
+                , conComm :: ! Connection }
 
 -- -----------------------------------------------------------------------------
-mkEmuState :: EmuState
+mkEmuState :: Connection -> EmuState
 mkEmuState = EmuState initialDCPU 0
 
 -- -----------------------------------------------------------------------------
