@@ -15,24 +15,35 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
-module ZDCpu16.ConState( ConState(..), mkConState ) where
+module ZDCpu16.ConState( ConState(..), mkConState, writeVRAM ) where
 
 -- -----------------------------------------------------------------------------
-import Data.Array.Unboxed( UArray, listArray )
+import Data.Array.Unboxed( UArray, listArray, (//) )
 import Data.Char( ord )
 import Data.Word( Word16 )
 
 -- -----------------------------------------------------------------------------
-data ConState = ConState 
-                { csEnd :: ! Bool 
-                , csVRAM :: UArray Int Word16 }
-              deriving( Show )
-                      
+data ConState = ConState
+		{ csEnd :: ! Bool
+		, csVRAM :: UArray Int Word16 }
+	      deriving( Show )
+
 -- -----------------------------------------------------------------------------
+vramSize :: Int
+vramSize = 32*12
+
 initialVRAM :: UArray Int Word16
-initialVRAM = listArray (0,32*12 - 1) . repeat . fromIntegral . ord $ 'C'
+initialVRAM = listArray (0,vramSize - 1) . repeat . fromIntegral . ord $ 'C'
 
 mkConState :: ConState
 mkConState = ConState False initialVRAM
+
+-- -----------------------------------------------------------------------------
+writeVRAM :: Int -> Word16 -> ConState -> ConState
+writeVRAM dir w cs
+  | dir >= 0 && dir < vramSize = cs{ csVRAM = newVRAM }
+  | otherwise = cs
+    where
+      newVRAM = (csVRAM cs) // [(dir,w)]
 
 -- -----------------------------------------------------------------------------
