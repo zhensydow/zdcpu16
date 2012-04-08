@@ -18,14 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module ZDCpu16.ConRender( RenderState, mkRenderState ) where
 
 -- -----------------------------------------------------------------------------
-import qualified Graphics.UI.SDL as SDL(
-  Surface, InitFlag(..), Color(..), Rect(..), init, setVideoMode, setCaption,
-  flip, blitSurface, mapRGB, fillRect, surfaceGetPixelFormat, getVideoSurface )
-import qualified Graphics.UI.SDL.TTF as SDLTTF(
-  Font, init, openFont, renderTextBlended, textSize )
-
--- -----------------------------------------------------------------------------
-data RenderState = RS
+import qualified Graphics.UI.SDL as SDL( 
+  InitFlag(..), init, setVideoMode, setCaption )
+import qualified Graphics.UI.SDL.TTF as SDLTTF( init, openFont )
+import ZDCpu16.Render( RenderState, newRenderState )
+import Paths_zdcpu16( getDataFileName )
 
 -- -----------------------------------------------------------------------------
 mkRenderState :: IO RenderState
@@ -34,6 +31,8 @@ mkRenderState = do
   _ <- SDLTTF.init
   _ <- SDL.setVideoMode 640 480 32 []
   SDL.setCaption "Zhen DCPU-16 Console" ""
-  return RS
+  filename <- getDataFileName "Inconsolata.ttf"
+  font <- SDLTTF.openFont filename 16
+  return $! newRenderState font
 
 -- -----------------------------------------------------------------------------
