@@ -21,12 +21,11 @@ module Main where
 import Data.Word( Word16 )
 import qualified Graphics.UI.SDL as SDL(
   Event(..), SDLKey(..), Keysym(..), waitEvent )
-import Network.MessagePackRpc.Client( connect )
 import ZDCpu16.DebugRender(
   RenderState, runRender, mkRenderState, clearScreen, renderEmuState )
 import ZDCpu16.EmuState( EmuState(..), mkEmuState )
 import ZDCpu16.Hardware( loads )
-import ZDCpu16.ConRPC( clQuit )
+import ZDCpu16.ConRPC( startConsole, clQuit )
 import ZDCpu16.ZDCpu16( runEmulator, stepEmulator )
 
 -- -----------------------------------------------------------------------------
@@ -61,7 +60,7 @@ mainLoop rst est = do
 -- -----------------------------------------------------------------------------
 main :: IO ()
 main = do
-  conn <- connect "127.0.0.1" 1234
+  conn <- startConsole
   rst <- mkRenderState
   let emptyState = mkEmuState conn
       initialEmuState = emptyState {
