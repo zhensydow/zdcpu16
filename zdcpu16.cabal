@@ -35,14 +35,14 @@ Library
                        ZDCpu16.ConRPC
                        ZDCpu16.ConRender
   Other-modules:       Paths_zdcpu16
-  Build-depends:       base==4.3.*, mtl==2.0.*, transformers==0.2.*, array==0.3.*, SDL==0.6.*, SDL-ttf==0.6.*, text==0.11.*, msgpack-rpc==0.7.*
+  Build-depends:       base==4.3.*, mtl==2.0.*, transformers==0.2.*, array==0.3.*, process==1.0.*, filepath==1.2.*, SDL==0.6.*, SDL-ttf==0.6.*, text==0.11.*, msgpack-rpc==0.7.*
   Ghc-options:         -Wall -O2 -funbox-strict-fields
 
 Executable zdcpu16-emu
   Hs-source-dirs:      src
   Default-language:    Haskell2010
   Main-is:             zddcpu16_emu_main.hs
-  Build-depends:       base==4.3.*, mtl==2.0.*, transformers==0.2.*, array==0.3.*, SDL==0.6.*, SDL-ttf==0.6.*, text==0.11.*, msgpack-rpc==0.7.*
+  Build-depends:       base==4.3.*, mtl==2.0.*, transformers==0.2.*, array==0.3.*, process==1.0.*, filepath==1.2.*, SDL==0.6.*, SDL-ttf==0.6.*, text==0.11.*, msgpack-rpc==0.7.*
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:
   Ghc-options:         -Wall -O2 -funbox-strict-fields
@@ -51,5 +51,5 @@ Executable zdcpu16-con
   Hs-source-dirs:      src
   Default-language:    Haskell2010
   Main-is:             zddcpu16_con_main.hs
-  Build-depends:       base==4.3.*, mtl==2.0.*, transformers==0.2.*, array==0.3.*, SDL==0.6.*, SDL-ttf==0.6.*, text==0.11.*, msgpack-rpc==0.7.*
+  Build-depends:       base==4.3.*, mtl==2.0.*, transformers==0.2.*, array==0.3.*, process==1.0.*, filepath==1.2.*, SDL==0.6.*, SDL-ttf==0.6.*, text==0.11.*, msgpack-rpc==0.7.*
   Ghc-options:         -Wall -O2 -funbox-strict-fields

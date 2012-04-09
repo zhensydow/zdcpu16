@@ -15,13 +15,19 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
-module ZDCpu16.ConRPC( serverRPCMethods, clQuit, clWriteVRAM ) where
+module ZDCpu16.ConRPC( 
+  serverRPCMethods, startConsole, clQuit, clWriteVRAM 
+  ) where
 
 -- -----------------------------------------------------------------------------
 import Control.Concurrent.MVar( MVar, modifyMVar_ )
 import qualified Network.MessagePackRpc.Server as MsgSRV( RpcMethod, fun )
-import Network.MessagePackRpc.Client( RpcMethod, method )
+import Network.MessagePackRpc.Client( Connection, RpcMethod, method, connect )
+import System.IO( hWaitForInput )
+import System.FilePath.Posix( combine )
+import System.Process( CreateProcess(..), StdStream(..), createProcess, proc )
 import ZDCpu16.ConState( ConState(..), writeVRAM )
+import Paths_zdcpu16( getBinDir)
 
 -- -----------------------------------------------------------------------------
 _quit :: MVar ConState -> IO ()
@@ -51,4 +57,13 @@ clQuit = method "con_quit"
 clWriteVRAM :: RpcMethod (Int -> Int -> IO ())
 clWriteVRAM = method "con_writeVRAM"
 
+-- -----------------------------------------------------------------------------
+startConsole :: IO Connection
+startConsole = do
+  bdir <- getBinDir
+  let cexe  = bdir `combine` "zdcpu16-con"
+  (_, Just hout,_,_) <- createProcess (proc cexe []){ std_out = CreatePipe }
+  _ <- hWaitForInput hout 2000
+  connect "127.0.0.1" 1234
+  
 -- -----------------------------------------------------------------------------
