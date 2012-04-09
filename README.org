@@ -2,6 +2,32 @@
 
   Zhen DCPU-16 Toolkit
 
+* Install
+
+#+BEGIN_EXAMPLE
+cabal install --user
+#+END_EXAMPLE
+
+Or with cabal-dev
+
+#+BEGIN_EXAMPLE
+cabal-dev configure --user
+cabal-dev install-deps
+cabal install
+#+END_EXAMPLE
+
+* Example of use
+
+Run the emulator with a binary program
+
+#+BEGIN_EXAMPLE
+> zdcpu16-emu examples/notch.bin
+#+END_EXAMPLE
+
+The emulator starts two windows, the debug window and a simulated console. 
+If the program =zdcpu16-con= (console process) is not installed, 
+the emulator will fail to start.
+
 * Links
   
   [[http://0x10c.com][Official 0x10c Web Page]]
