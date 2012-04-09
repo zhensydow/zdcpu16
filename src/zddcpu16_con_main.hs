@@ -22,6 +22,7 @@ import Control.Concurrent( forkIO, killThread )
 import Control.Concurrent.MVar( MVar, newMVar, readMVar )
 import qualified Graphics.UI.SDL as SDL( Event(..), pollEvent )
 import Network.MessagePackRpc.Server( serve )
+import System.IO( stdout, hFlush )
 import ZDCpu16.Render( runRender, clearScreen )
 import ZDCpu16.ConRPC( serverRPCMethods )
 import ZDCpu16.ConRender( RenderState, mkRenderState, renderConsole )
@@ -54,17 +55,14 @@ main :: IO ()
 main = do
   csRef <- newMVar $ mkConState
   
-  msgTID <- forkIO $ do
-    putStrLn "start RPC server"
-    serve 1234 $ serverRPCMethods csRef
-    putStrLn "end RPC server"
+  msgTID <- forkIO $ serve 1234 $ serverRPCMethods csRef
 
-  putStrLn "start sdl server"
   rst <- mkRenderState
+  putStrLn "console started"
+  hFlush stdout
   mainLoop rst csRef
-  putStrLn "end sdl server"
 
   killThread msgTID
-  putStrLn "Exit"
+  putStrLn "console ended"
 
 -- -----------------------------------------------------------------------------
