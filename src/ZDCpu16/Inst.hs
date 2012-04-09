@@ -35,7 +35,8 @@ import ZDCpu16.Util( showWord )
 -- -----------------------------------------------------------------------------
 data OpCode = SET | ADD | SUB | MUL | DIV | MOD
             | SHL | SHR | AND | BOR | XOR
-            | IFE | IFN | IFG | IFB | JSR | RESERV
+            | IFE | IFN | IFG | IFB | JSR
+            | RESERV | UNKNOWN
             deriving( Show )
 
 -- -----------------------------------------------------------------------------
@@ -67,7 +68,7 @@ basicOp _ = error "basic op"
 nonBasicOp :: Word16 -> OpCode
 nonBasicOp 0x00 = RESERV
 nonBasicOp 0x01 = JSR
-nonBasicOp _ = error "non basic op"
+nonBasicOp _ = UNKNOWN
 
 -- -----------------------------------------------------------------------------
 data OpVal = VReg ! Word16

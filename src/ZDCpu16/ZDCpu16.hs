@@ -291,6 +291,7 @@ execInstruction ins = case opcode ins of
     setPC a
 
   RESERV -> return ()
+  UNKNOWN -> return ()
 
 -- -----------------------------------------------------------------------------
 skipNextInstruction :: Emulator ()
