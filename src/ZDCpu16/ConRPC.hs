@@ -63,7 +63,10 @@ startConsole = do
   bdir <- getBinDir
   let cexe  = bdir `combine` "zdcpu16-con"
   (_, Just hout,_,_) <- createProcess (proc cexe []){ std_out = CreatePipe }
-  _ <- hWaitForInput hout 2000
+  catch 
+    (hWaitForInput hout 2000 >> return ())
+    (\_ -> error $ cexe ++ " executable not found")
+    
   connect "127.0.0.1" 1234
   
 -- -----------------------------------------------------------------------------
