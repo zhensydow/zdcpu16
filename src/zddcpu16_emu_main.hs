@@ -45,15 +45,13 @@ mainLoop rst est = do
         SDL.SDLK_s -> do
           (_,newEst) <- runEmulator stepEmulator est
           mainLoop rst newEst
-        _ -> do
-          print key
-          mainLoop rst est
+        _ -> mainLoop rst est
     _ -> mainLoop rst est
 
 -- -----------------------------------------------------------------------------
 main :: IO ()
 main = do
-  args     <- getArgs
+  args <- getArgs
   case args of
     [filename] -> do
       program <- fmap byteStringToWord16 . BS.readFile $ filename
