@@ -15,10 +15,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
-module ZDCpu16.Util( showWord ) where
+module ZDCpu16.Util( showWord, byteStringToWord16 ) where
 
 -- -----------------------------------------------------------------------------
-import Data.Word( Word16 )
+import qualified Data.ByteString as BS( ByteString, unpack )
+import Data.Bits( shiftL, (.|.) )
+import Data.Word( Word8, Word16 )
 import Numeric( showHex )
 
 -- -----------------------------------------------------------------------------
@@ -28,4 +30,17 @@ showWord v = replicate filln '0' ++ cad
     cad = showHex v ""
     filln = 4 - length cad
 
+-- -----------------------------------------------------------------------------
+byteStringToWord16 :: BS.ByteString -> [Word16]
+byteStringToWord16 = packW8ToW16 . BS.unpack
+
+-- -----------------------------------------------------------------------------
+packW8ToW16 :: [Word8] -> [Word16]
+packW8ToW16 [] = []
+packW8ToW16 (_:[]) = []
+packW8ToW16 (x:y:xs) = word : packW8ToW16 xs
+  where
+    ah = fromIntegral x `shiftL` 8
+    al = fromIntegral y
+    word =  ah .|. al 
 -- -----------------------------------------------------------------------------
