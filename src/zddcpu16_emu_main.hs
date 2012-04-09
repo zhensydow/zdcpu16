@@ -15,28 +15,21 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
-module Main where
+module Main( main ) where
 
 -- -----------------------------------------------------------------------------
-import Data.Word( Word16 )
+import qualified Data.ByteString as BS( readFile )
 import qualified Graphics.UI.SDL as SDL(
   Event(..), SDLKey(..), Keysym(..), waitEvent )
+import System.Environment( getArgs, getProgName )
+import System.Exit( exitSuccess, exitFailure )
 import ZDCpu16.DebugRender(
   RenderState, runRender, mkRenderState, clearScreen, renderEmuState )
 import ZDCpu16.EmuState( EmuState(..), mkEmuState )
 import ZDCpu16.Hardware( loads )
 import ZDCpu16.ConRPC( startConsole, clQuit )
+import ZDCpu16.Util( byteStringToWord16 )
 import ZDCpu16.ZDCpu16( runEmulator, stepEmulator )
-
--- -----------------------------------------------------------------------------
-testProgram :: [Word16]
-testProgram = [ 0x7c01, 0x0030, 0x7de1, 0x1000, 0x0020
-              , 0x7803, 0x1000, 0xc00d, 0x7dc1, 0x001d
-              , 0xa861, 0x7c01, 0x2000, 0x2161, 0x2000
-              , 0x8463, 0x806d, 0x7dc1, 0x000d, 0x9031
-              , 0x7c10, 0x001b, 0x7de1, 0x8000, 0x0048
-              , 0x7dc1, 0x001d, 0x9037, 0x61c1, 0x7dc1
-              , 0x001d, 0x0000, 0x0000 ]
 
 -- -----------------------------------------------------------------------------
 mainLoop :: RenderState -> EmuState -> IO ()
@@ -60,13 +53,22 @@ mainLoop rst est = do
 -- -----------------------------------------------------------------------------
 main :: IO ()
 main = do
-  conn <- startConsole
-  rst <- mkRenderState
-  let emptyState = mkEmuState conn
-      initialEmuState = emptyState {
-        emuCpu = loads 0 testProgram $ emuCpu emptyState }
-  mainLoop rst initialEmuState
-  clQuit conn
-  putStrLn "Exit"
+  args     <- getArgs
+  case args of
+    [filename] -> do
+      program <- fmap byteStringToWord16 . BS.readFile $ filename
+      conn <- startConsole
+      rst <- mkRenderState
+      let emptyState = mkEmuState conn
+          initialEmuState = emptyState {
+            emuCpu = loads 0 program $ emuCpu emptyState }
+      mainLoop rst initialEmuState
+      clQuit conn
+      exitSuccess
+
+    _ -> do
+      progName <- getProgName
+      putStrLn $ "Usage: " ++ progName ++ "BIN_FILE"
+      exitFailure
 
 -- -----------------------------------------------------------------------------
