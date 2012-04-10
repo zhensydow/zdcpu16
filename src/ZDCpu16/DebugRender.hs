@@ -92,7 +92,9 @@ renderEmuState st = do
 
   renderText (TextSpan 20 35 lightblue "PC Disassembly")
 
-  renderText (TextSpan 10 460 white "[S] Step, [Q] Quit")
+  if runMode st
+    then renderText (TextSpan 10 460 white "[H] Halt, [Q] Quit")
+    else renderText (TextSpan 10 460 white "[S] Step, [R] Run, [Q] Quit")
 
   return ()
 
