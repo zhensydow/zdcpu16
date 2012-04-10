@@ -24,6 +24,8 @@ Run the emulator with a binary program
 > zdcpu16-emu examples/notch.bin
 #+END_EXAMPLE
 
+The binary file should be in big endian format.
+
 The emulator starts two windows, the debug window and a simulated console. 
 If the program =zdcpu16-con= (console process) is not installed, 
 the emulator will fail to start.
