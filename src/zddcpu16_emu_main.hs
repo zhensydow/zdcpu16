@@ -20,7 +20,7 @@ module Main( main ) where
 -- -----------------------------------------------------------------------------
 import qualified Data.ByteString as BS( readFile )
 import qualified Graphics.UI.SDL as SDL(
-  Event(..), SDLKey(..), Keysym(..), waitEvent )
+  Event(..), SDLKey(..), Keysym(..), pollEvent )
 import System.Environment( getArgs, getProgName )
 import System.Exit( exitSuccess, exitFailure )
 import ZDCpu16.DebugRender(
@@ -32,21 +32,46 @@ import ZDCpu16.Util( byteStringToWord16 )
 import ZDCpu16.ZDCpu16( runEmulator, stepEmulator )
 
 -- -----------------------------------------------------------------------------
+getInput :: EmuState -> IO (EmuState, Bool)
+getInput est = do
+  e <- SDL.pollEvent
+  case e of
+    SDL.Quit -> return $! (est, True)
+    SDL.KeyUp key -> do
+      case SDL.symKey key of
+        SDL.SDLK_ESCAPE -> return $! (est, True)
+        SDL.SDLK_q -> return $! (est, True)
+        SDL.SDLK_s -> do
+          if runMode est
+            then getInput est
+            else do
+              (_,newEst) <- runEmulator stepEmulator est
+              getInput newEst
+        SDL.SDLK_r -> do
+          if runMode est
+            then getInput est
+            else getInput est{ runMode = True }
+        SDL.SDLK_h -> do  
+          if runMode est
+            then getInput est{ runMode = False }
+            else getInput est
+        _ -> getInput est
+    SDL.NoEvent -> return $! (est, False)      
+    _ -> getInput est
+    
+-- -----------------------------------------------------------------------------
 mainLoop :: RenderState -> EmuState -> IO ()
 mainLoop rst est = do
   _ <- runRender (clearScreen >> renderEmuState est) rst
-  e <- SDL.waitEvent
-  case e of
-    SDL.Quit -> return ()
-    SDL.KeyUp key -> do
-      case SDL.symKey key of
-        SDL.SDLK_ESCAPE -> return ()
-        SDL.SDLK_q -> return ()
-        SDL.SDLK_s -> do
-          (_,newEst) <- runEmulator stepEmulator est
-          mainLoop rst newEst
-        _ -> mainLoop rst est
-    _ -> mainLoop rst est
+  (newEst, quit) <- getInput est
+  if quit
+    then return ()
+    else do
+      if runMode newEst
+        then do
+          (_,newEst2) <- runEmulator stepEmulator newEst
+          mainLoop rst newEst2
+        else mainLoop rst newEst
 
 -- -----------------------------------------------------------------------------
 main :: IO ()
