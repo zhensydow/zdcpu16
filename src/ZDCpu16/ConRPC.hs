@@ -32,14 +32,12 @@ import Paths_zdcpu16( getBinDir)
 -- -----------------------------------------------------------------------------
 _quit :: MVar ConState -> IO ()
 _quit csRef = do
-  putStrLn "executed QUIT"
   modifyMVar_ csRef $ \cs -> return cs{ csEnd = True }
   return ()
 
 -- -----------------------------------------------------------------------------
 _writeVRAM :: MVar ConState -> Int -> Int -> IO ()
 _writeVRAM csRef dir val = do
-  putStrLn "executed WRITEVRAM"
   modifyMVar_ csRef (return . writeVRAM dir (fromIntegral val))
   return ()
 
