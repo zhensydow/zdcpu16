@@ -16,7 +16,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module ZDCpu16.ZDCpu16( Emulator, runEmulator, stepEmulator ) where
+module ZDCpu16.ZDCpu16(
+  Emulator, runEmulator, stepEmulator, stepNCycles )
+       where
 
 -- -----------------------------------------------------------------------------
 import Control.Monad.IO.Class( MonadIO, liftIO )
@@ -248,6 +250,16 @@ stepEmulator = do
   op <- getMem pc
   incPC
   execInstruction op
+
+-- -----------------------------------------------------------------------------
+stepNCycles :: Int -> Int -> Emulator Int
+stepNCycles d 0 = return d
+stepNCycles d n
+  | n <= d = return $! d - n
+  | otherwise = do
+    stepEmulator
+    st <- get
+    stepNCycles (d + (lastCycles st)) n
 
 -- -----------------------------------------------------------------------------
 execInstruction :: Word16 -> Emulator ()
