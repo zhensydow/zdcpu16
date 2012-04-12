@@ -20,7 +20,7 @@ module ZDCpu16.ZDCpu16( Emulator, runEmulator, stepEmulator ) where
 
 -- -----------------------------------------------------------------------------
 import Control.Monad.IO.Class( MonadIO, liftIO )
-import Control.Monad.State( StateT, MonadState(..), runStateT )
+import Control.Monad.State( StateT, MonadState(..), runStateT, modify )
 import Data.Array.Unboxed( (!), (//) )
 import Data.Bits( xor, (.&.), (.|.) );
 import Data.Word( Word16 )
@@ -34,18 +34,23 @@ import ZDCpu16.ConRPC( clWriteVRAM )
 
 -- -----------------------------------------------------------------------------
 newtype Emulator a = Emulator
-		     { runEmul :: StateT EmuState IO a }
-		   deriving( Functor, Monad, MonadIO, MonadState EmuState )
+                     { runEmul :: StateT EmuState IO a }
+                   deriving( Functor, Monad, MonadIO, MonadState EmuState )
 
 -- -----------------------------------------------------------------------------
 runEmulator :: Emulator a -> EmuState -> IO (a, EmuState)
 runEmulator emulator st = runStateT (runEmul emulator) st
 
 -- -----------------------------------------------------------------------------
-incCycles :: Integer -> Emulator ()
+incCycles :: Int -> Emulator ()
 incCycles d = do
   st <- get
-  put st{ cycles = (cycles st) + d }
+  put st{ totalCycles = (totalCycles st) + (fromIntegral d)
+        , lastCycles = (lastCycles st) + d }
+
+-- -----------------------------------------------------------------------------
+resetLastCycles :: Emulator ()
+resetLastCycles = modify $ \st -> st{ lastCycles = 0 }
 
 -- -----------------------------------------------------------------------------
 getRegister :: Word16 -> Emulator Word16
@@ -121,10 +126,10 @@ setMem dir val = do
 
 -- -----------------------------------------------------------------------------
 data LVal = LRegister ! Int
-	  | LMem Word16
-	  | LPC | LSP | LO
-	  | LLiteral Word16
-	  deriving( Show )
+          | LMem Word16
+          | LPC | LSP | LO
+          | LLiteral Word16
+          deriving( Show )
 
 -- -----------------------------------------------------------------------------
 getRVal :: Word16 -> Emulator Word16
@@ -238,6 +243,7 @@ getLVal (LLiteral v) = return $ v
 -- -----------------------------------------------------------------------------
 stepEmulator :: Emulator ()
 stepEmulator = do
+  resetLastCycles
   pc <- getPC
   op <- getMem pc
   incPC
@@ -290,8 +296,8 @@ execInstruction ins = case opcode ins of
     setMem sp pc
     setPC a
 
-  RESERV -> return ()
-  UNKNOWN -> return ()
+  RESERV -> incCycles 1
+  UNKNOWN -> incCycles 1
 
 -- -----------------------------------------------------------------------------
 skipNextInstruction :: Emulator ()
@@ -301,7 +307,7 @@ skipNextInstruction = do
   setPC (pc + instructionLength op)
 
 -- -----------------------------------------------------------------------------
-setLValIns :: Word16 -> Integer -> (Word16 -> Word16 -> Word16) -> Emulator ()
+setLValIns :: Word16 -> Int -> (Word16 -> Word16 -> Word16) -> Emulator ()
 setLValIns ins cost f = do
   incCycles cost
   aref <- getLValRef (basicA ins)
@@ -310,8 +316,8 @@ setLValIns ins cost f = do
   setLVal aref $! (a `f` b)
 
 -- -----------------------------------------------------------------------------
-setLValOIns :: Word16 -> Integer -> (Word16 -> Word16 -> (Word16, Word16))
-	       -> Emulator ()
+setLValOIns :: Word16 -> Int -> (Word16 -> Word16 -> (Word16, Word16))
+               -> Emulator ()
 setLValOIns ins cost f = do
   incCycles cost
   aref <- getLValRef (basicA ins)

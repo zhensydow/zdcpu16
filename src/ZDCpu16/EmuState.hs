@@ -25,12 +25,21 @@ import ZDCpu16.Hardware( DCPU_16(..), initialDCPU )
 -- -----------------------------------------------------------------------------
 data EmuState = EmuState
                 { emuCpu :: ! DCPU_16
-                , cycles :: ! Integer 
+                , totalCycles :: ! Integer
+                , lastCycles :: ! Int
                 , runMode :: ! Bool
                 , conComm :: ! Connection }
 
 -- -----------------------------------------------------------------------------
+instance Show EmuState where
+  show st = "EmuState { cpu = " ++ (show . emuCpu) st
+            ++ ", totalCycles = " ++ (show . totalCycles) st
+            ++ ", lastCycles = " ++ (show . lastCycles) st
+            ++ ", runMode = " ++ (show . runMode) st
+            ++ " } "
+
+-- -----------------------------------------------------------------------------
 mkEmuState :: Connection -> EmuState
-mkEmuState = EmuState initialDCPU 0 False
+mkEmuState = EmuState initialDCPU 0 0 False
 
 -- -----------------------------------------------------------------------------

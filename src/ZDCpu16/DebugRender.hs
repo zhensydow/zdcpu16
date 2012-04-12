@@ -79,7 +79,7 @@ renderEmuState st = do
   renderText (TextSpan 500 130 white (pack $ "SP: 0x" ++ showWord valSP))
   renderText (TextSpan 500 140 white (pack $ "O:  0x" ++ showWord valO))
 
-  let cys = cycles st
+  let cys = totalCycles st
   renderText (TextSpan 500 160 red (pack $ "CPU cycles " ++ show cys))
 
   let pcnums = [valPC ..]
