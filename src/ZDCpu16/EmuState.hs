@@ -27,6 +27,7 @@ data EmuState = EmuState
                 , totalCycles :: ! Integer
                 , lastCycles :: ! Int
                 , runMode :: ! Bool
+                , speed :: ! Int
                 , writeVRAM :: Int -> Int -> IO () }
 
 -- -----------------------------------------------------------------------------
@@ -39,6 +40,6 @@ instance Show EmuState where
 
 -- -----------------------------------------------------------------------------
 mkEmuState :: (Int -> Int -> IO ()) -> EmuState
-mkEmuState = EmuState initialDCPU 0 0 False
+mkEmuState = EmuState initialDCPU 0 0 False 100
 
 -- -----------------------------------------------------------------------------

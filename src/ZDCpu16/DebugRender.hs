@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ----------------------------------------------------------------------------- -}
 {-# LANGUAGE OverloadedStrings #-}
 module ZDCpu16.DebugRender(
-  RenderState, runRender, mkRenderState,  clearScreen, renderText, 
+  RenderState, runRender, mkRenderState,  clearScreen, renderText,
   renderEmuState,
   ) where
 
@@ -28,8 +28,8 @@ import Data.Version( showVersion )
 import qualified Graphics.UI.SDL as SDL(
   InitFlag(..), init, setVideoMode, setCaption )
 import qualified Graphics.UI.SDL.TTF as SDLTTF( init, openFont )
-import ZDCpu16.Render( 
-  RenderState, Render, TextSpan(..), newRenderState, runRender, clearScreen, 
+import ZDCpu16.Render(
+  RenderState, Render, TextSpan(..), newRenderState, runRender, clearScreen,
   renderText, white, red, lightblue )
 import ZDCpu16.Disasm( disasm', showDIns )
 import ZDCpu16.EmuState( EmuState(..) )
@@ -92,9 +92,12 @@ renderEmuState st = do
 
   renderText (TextSpan 20 35 lightblue "PC Disassembly")
 
+  let spd = speed st
   if runMode st
-    then renderText (TextSpan 10 460 white "[H] Halt, [Q] Quit")
-    else renderText (TextSpan 10 460 white "[S] Step, [R] Run, [Q] Quit")
+    then renderText (TextSpan 10 460 white . pack
+                     $ "[H] Halt, [Q] Quit, [+/-] " ++ show spd ++ " MHz")
+    else renderText (TextSpan 10 460 white . pack
+                     $ "[S] Step, [R] Run, [Q] Quit, [+/-] " ++ show spd ++ " MHz")
 
   return ()
 

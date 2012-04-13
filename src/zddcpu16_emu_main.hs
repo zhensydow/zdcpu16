@@ -57,6 +57,12 @@ getInput est = do
           if runMode est
             then getInput est{ runMode = False }
             else getInput est
+        SDL.SDLK_PLUS -> if (speed est < 1000)
+                         then getInput est{ speed = speed est + 10 }
+                         else getInput est
+        SDL.SDLK_MINUS -> if (speed est > 10)
+                          then getInput est{ speed = speed est - 10 }
+                          else getInput est
         _ -> getInput est
     SDL.NoEvent -> return $! (est, False)
     _ -> getInput est
@@ -71,7 +77,7 @@ mainLoop rst est lastd lastt = do
     if runMode newEst
       then do
         let dt = newt - lastt
-            cycles = fromIntegral $ dt * 100
+            cycles = fromIntegral $ dt * (fromIntegral $ speed newEst)
         (newd,newEst2) <- runEmulator (stepNCycles lastd cycles) newEst
         mainLoop rst newEst2 newd newt
       else mainLoop rst newEst lastd newt
