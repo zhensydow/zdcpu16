@@ -168,19 +168,19 @@ addOverflow :: Word16 -> Word16 -> (Word16, Word16)
 addOverflow a b = (fromIntegral sum32, overf)
   where
     overf = if sum32 > 0xffff then 0x0001 else 0x0
-    sum32 = (fromIntegral a + fromIntegral b) :: Word32
+    sum32 = fromIntegral a + fromIntegral b :: Word32
 
 -- -----------------------------------------------------------------------------
 subUnderflow :: Word16 -> Word16 -> (Word16, Word16)
 subUnderflow a b = (fromIntegral subInt, overf)
   where
     overf = if subInt < 0 then 0xffff else 0x0
-    subInt = (fromIntegral a - fromIntegral b) :: Int
+    subInt = fromIntegral a - fromIntegral b :: Int
 
 mulOverflow :: Word16 -> Word16 -> (Word16, Word16)
 mulOverflow a b = (fromIntegral val32, fromIntegral overf)
   where
-    val32 = (fromIntegral a * fromIntegral b) :: Word32
+    val32 = fromIntegral a * fromIntegral b :: Word32
     overf = (val32 `shiftR` 16) .&. 0xffff
 
 -- -----------------------------------------------------------------------------
@@ -199,7 +199,7 @@ shlOverflow :: Word16 -> Word16 -> (Word16, Word16)
 shlOverflow a b = (fromIntegral val32, fromIntegral overf)
   where
     overf = (val32 `shiftR` 16) .&. 0xffff
-    val32 = (fromIntegral a `shiftL` fromIntegral b) :: Word32
+    val32 = fromIntegral a `shiftL` fromIntegral b :: Word32
 
 -- -----------------------------------------------------------------------------
 shrUnderflow :: Word16 -> Word16 -> (Word16, Word16)

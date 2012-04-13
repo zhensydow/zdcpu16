@@ -43,6 +43,6 @@ writeVRAM dir w cs
   | dir >= 0 && dir < vramSize = cs{ csVRAM = newVRAM }
   | otherwise = cs
     where
-      newVRAM = (csVRAM cs) // [(dir,w)]
+      newVRAM = csVRAM cs // [(dir,w)]
 
 -- -----------------------------------------------------------------------------

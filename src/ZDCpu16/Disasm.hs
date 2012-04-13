@@ -43,13 +43,13 @@ disasm = map snd . disasm' . zip [0 :: Int ..]
 
 -- -----------------------------------------------------------------------------
 extractA :: Word16 -> [(a,Word16)] -> Maybe (OpVal, [(a,Word16)])
-extractA v xs = extractVal (opval $ nonbasicA v) xs
+extractA = extractVal . opval . nonbasicA
 
 extractAB :: Word16 -> [(a,Word16)] -> Maybe (OpVal, OpVal, [(a,Word16)])
 extractAB v xs = do
   resta <- extractVal (opval $ basicA v) xs
   restb <- extractVal (opval $ basicB v) (snd resta)
-  return $ (fst resta, fst restb, snd restb)
+  return (fst resta, fst restb, snd restb)
 
 extractVal :: OpVal -> [(a,Word16)] -> Maybe (OpVal, [(a,Word16)])
 extractVal v xs = case v of

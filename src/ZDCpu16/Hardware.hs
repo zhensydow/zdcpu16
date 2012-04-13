@@ -20,7 +20,7 @@ module ZDCpu16.Hardware(
   DCPU_16(..),
   -- * Functions
   initialDCPU,
-  reg_A, reg_B, reg_C, reg_X, reg_Y, reg_Z, reg_I, reg_J, showReg, load, loads,
+  regA, regB, regC, regX, regY, regZ, regI, regJ, showReg, load, loads,
   dumps
   ) where
 
@@ -55,34 +55,34 @@ initialDCPU :: DCPU_16
 initialDCPU = DCPU_16 initialRAM initialRegisters 0 0 0
 
 -- -----------------------------------------------------------------------------
-reg_A :: DCPU_16 -> Word16
-reg_A = (!0) . registers
+regA :: DCPU_16 -> Word16
+regA = (!0) . registers
 
-reg_B :: DCPU_16 -> Word16
-reg_B = (!1) . registers
+regB :: DCPU_16 -> Word16
+regB = (!1) . registers
 
-reg_C :: DCPU_16 -> Word16
-reg_C = (!2) . registers
+regC :: DCPU_16 -> Word16
+regC = (!2) . registers
 
-reg_X :: DCPU_16 -> Word16
-reg_X = (!3) . registers
+regX :: DCPU_16 -> Word16
+regX = (!3) . registers
 
-reg_Y :: DCPU_16 -> Word16
-reg_Y = (!4) . registers
+regY :: DCPU_16 -> Word16
+regY = (!4) . registers
 
-reg_Z :: DCPU_16 -> Word16
-reg_Z = (!5) . registers
+regZ :: DCPU_16 -> Word16
+regZ = (!5) . registers
 
-reg_I :: DCPU_16 -> Word16
-reg_I = (!6) . registers
+regI :: DCPU_16 -> Word16
+regI = (!6) . registers
 
-reg_J :: DCPU_16 -> Word16
-reg_J = (!7) . registers
+regJ :: DCPU_16 -> Word16
+regJ = (!7) . registers
 
 -- -----------------------------------------------------------------------------
 showReg :: Word16 -> String
 showReg r
-  | idx >= 0 && idx < (length table) = table !! idx
+  | idx >= 0 && idx < length table = table !! idx
   | otherwise = "?"
     where
       idx = fromIntegral r
@@ -92,13 +92,13 @@ showReg r
 load :: Int -> Word16 -> DCPU_16 -> DCPU_16
 load dir val dcpu = dcpu{ ram = newram }
   where
-    newram = (ram dcpu) // [(dir,val)]
+    newram = ram dcpu // [(dir,val)]
 
 -- -----------------------------------------------------------------------------
 loads :: Int -> [Word16] -> DCPU_16 -> DCPU_16
 loads dir vals dcpu = dcpu{ ram = newram }
   where
-    newram = (ram dcpu) // zip [dir..] vals
+    newram = ram dcpu // zip [dir..] vals
 
 -- -----------------------------------------------------------------------------
 dumps :: Int -> DCPU_16 -> [Word16]

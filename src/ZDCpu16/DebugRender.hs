@@ -34,7 +34,7 @@ import ZDCpu16.Render(
 import ZDCpu16.Disasm( disasm', showDIns )
 import ZDCpu16.EmuState( EmuState(..) )
 import ZDCpu16.Hardware(
-  DCPU_16(..), reg_A, reg_B, reg_C, reg_X, reg_Y, reg_Z, reg_I, reg_J, dumps )
+  DCPU_16(..), regA, regB, regC, regX, regY, regZ, regI, regJ, dumps )
 import ZDCpu16.Util( showWord )
 import Paths_zdcpu16( version, getDataFileName )
 
@@ -54,14 +54,14 @@ renderEmuState :: EmuState -> Render ()
 renderEmuState st = do
   let vrs = showVersion version
   renderText (TextSpan 10 10 (255,255,0) (pack $ "Zhen DCPU-16 " ++ vrs))
-  let valA = reg_A . emuCpu $ st
-      valB = reg_B . emuCpu $ st
-      valC = reg_C . emuCpu $ st
-      valX = reg_X . emuCpu $ st
-      valY = reg_Y . emuCpu $ st
-      valZ = reg_Z . emuCpu $ st
-      valI = reg_I . emuCpu $ st
-      valJ = reg_J . emuCpu $ st
+  let valA = regA . emuCpu $ st
+      valB = regB . emuCpu $ st
+      valC = regC . emuCpu $ st
+      valX = regX . emuCpu $ st
+      valY = regY . emuCpu $ st
+      valZ = regZ . emuCpu $ st
+      valI = regI . emuCpu $ st
+      valJ = regJ . emuCpu $ st
   renderText (TextSpan 500 30 white (pack $ "A:  0x" ++ showWord valA))
   renderText (TextSpan 500 40 white (pack $ "B:  0x" ++ showWord valB))
   renderText (TextSpan 500 50 white (pack $ "C:  0x" ++ showWord valC))

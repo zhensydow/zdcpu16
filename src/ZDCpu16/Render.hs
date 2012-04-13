@@ -91,7 +91,7 @@ getMainBuffer = io SDL.getVideoSurface
 
 -- -----------------------------------------------------------------------------
 getMainFont :: Render (SDLTTF.Font)
-getMainFont = fmap renderFont $ get
+getMainFont = fmap renderFont get
 
 -- -----------------------------------------------------------------------------
 clearScreen :: Render ()

@@ -21,6 +21,7 @@ module ZDCpu16.ZDCpu16(
        where
 
 -- -----------------------------------------------------------------------------
+import Control.Monad( when )
 import Control.Monad.IO.Class( MonadIO, liftIO )
 import Control.Monad.State( StateT, MonadState(..), runStateT, modify )
 import Data.Array.Unboxed( (!), (//) )
@@ -40,14 +41,12 @@ newtype Emulator a = Emulator
 
 -- -----------------------------------------------------------------------------
 runEmulator :: Emulator a -> EmuState -> IO (a, EmuState)
-runEmulator emulator st = runStateT (runEmul emulator) st
+runEmulator = runStateT . runEmul
 
 -- -----------------------------------------------------------------------------
 incCycles :: Int -> Emulator ()
-incCycles d = do
-  st <- get
-  put st{ totalCycles = (totalCycles st) + (fromIntegral d)
-        , lastCycles = (lastCycles st) + d }
+incCycles d = modify $ \st -> st{ totalCycles = totalCycles st + fromIntegral d
+                                , lastCycles = lastCycles st + d }
 
 -- -----------------------------------------------------------------------------
 resetLastCycles :: Emulator ()
@@ -55,7 +54,7 @@ resetLastCycles = modify $ \st -> st{ lastCycles = 0 }
 
 -- -----------------------------------------------------------------------------
 getRegister :: Word16 -> Emulator Word16
-getRegister v = get >>= return . (! (fromIntegral v)) . registers . emuCpu
+getRegister v = fmap ((! (fromIntegral v)) . registers . emuCpu) get
 
 setRegister :: Int -> Word16 -> Emulator ()
 setRegister v val = do
@@ -66,7 +65,7 @@ setRegister v val = do
 
 -- -----------------------------------------------------------------------------
 getPC :: Emulator Word16
-getPC = get >>= return . programCounter . emuCpu
+getPC = fmap (programCounter . emuCpu) get
 
 setPC :: Word16 -> Emulator ()
 setPC val = do
@@ -82,7 +81,7 @@ incPC = do
 
 -- -----------------------------------------------------------------------------
 getSP :: Emulator Word16
-getSP = get >>= return . stackPointer . emuCpu
+getSP = fmap (stackPointer . emuCpu) get
 
 setSP :: Word16 -> Emulator ()
 setSP val = do
@@ -103,7 +102,7 @@ decSP = do
 
 -- -----------------------------------------------------------------------------
 getOverflow :: Emulator Word16
-getOverflow = get >>= return . overflow . emuCpu
+getOverflow = fmap (overflow . emuCpu) get
 
 setOverflow :: Word16 -> Emulator ()
 setOverflow val = do
@@ -113,7 +112,7 @@ setOverflow val = do
 
 -- -----------------------------------------------------------------------------
 getMem :: Word16 -> Emulator Word16
-getMem dir = get >>= return . (! (fromIntegral dir)) . ram . emuCpu
+getMem dir = fmap ((! (fromIntegral dir)) . ram . emuCpu) get
 
 setMem :: Word16 -> Word16 -> Emulator ()
 setMem dir val = do
@@ -121,9 +120,8 @@ setMem dir val = do
   let newcpu = emuCpu st
       oldram = ram newcpu
   put st{ emuCpu = newcpu{ ram = oldram // [(fromIntegral dir,val)] } }
-  if dir >= 0x8000
-    then liftIO $ (writeVRAM st) (fromIntegral (dir - 0x8000)) (fromIntegral val)
-    else return ()
+  when (dir >= 0x8000)
+    $ liftIO $ writeVRAM st (fromIntegral (dir - 0x8000)) (fromIntegral val)
 
 -- -----------------------------------------------------------------------------
 data LVal = LRegister ! Int
@@ -184,7 +182,7 @@ getLValRef v = case opval v of
   -- register (A, B, C, X, Y, Z, I or J, in that order)
   VReg r -> return $! LRegister (fromIntegral r)
   -- [register]
-  VMemReg r -> getRegister r >>= return . LMem
+  VMemReg r -> fmap LMem (getRegister r)
   -- [next word + register]
   VMemWordReg r _ -> do
     incCycles 1
@@ -199,9 +197,9 @@ getLValRef v = case opval v of
     incSP
     return $ LMem sp
   -- PEEK / [SP]
-  VPeek -> getSP >>= return . LMem
+  VPeek -> fmap LMem getSP
   -- PUSH / [--SP]
-  VPush -> decSP >> getSP >>= return . LMem
+  VPush -> fmap LMem (decSP >> getSP)
   -- SP
   VSP -> return LSP
   -- PC
@@ -220,7 +218,7 @@ getLValRef v = case opval v of
     incCycles 1
     pc <- getPC
     incPC
-    getMem pc >>= return . LLiteral
+    fmap LLiteral (getMem pc)
   -- literal value 0x00-0x1f (literal)
   VLiteral l -> return . LLiteral $ l
 
@@ -239,7 +237,7 @@ getLVal (LMem dir) = getMem dir
 getLVal LSP = getSP
 getLVal LPC = getPC
 getLVal LO = getOverflow
-getLVal (LLiteral v) = return $ v
+getLVal (LLiteral v) = return v
 
 -- -----------------------------------------------------------------------------
 stepEmulator :: Emulator ()
@@ -258,7 +256,7 @@ stepNCycles d n
   | otherwise = do
     stepEmulator
     st <- get
-    stepNCycles (d + (lastCycles st)) n
+    stepNCycles (d + lastCycles st) n
 
 -- -----------------------------------------------------------------------------
 execInstruction :: Word16 -> Emulator ()
