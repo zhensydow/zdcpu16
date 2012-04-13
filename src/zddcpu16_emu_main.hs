@@ -27,7 +27,7 @@ import ZDCpu16.DebugRender(
   RenderState, runRender, mkRenderState, clearScreen, renderEmuState )
 import ZDCpu16.EmuState( EmuState(..), mkEmuState )
 import ZDCpu16.Hardware( loads )
-import ZDCpu16.ConRPC( startConsole, clQuit )
+import ZDCpu16.ConRPC( startConsole, clQuit, clWriteVRAM )
 import ZDCpu16.Util( byteStringToWord16 )
 import ZDCpu16.ZDCpu16( runEmulator, stepEmulator )
 
@@ -82,7 +82,7 @@ main = do
       program <- fmap byteStringToWord16 . BS.readFile $ filename
       conn <- startConsole
       rst <- mkRenderState
-      let emptyState = mkEmuState conn
+      let emptyState = mkEmuState (clWriteVRAM conn)
           initialEmuState = emptyState {
             emuCpu = loads 0 program $ emuCpu emptyState }
       mainLoop rst initialEmuState

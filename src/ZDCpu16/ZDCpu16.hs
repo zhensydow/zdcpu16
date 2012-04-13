@@ -32,7 +32,6 @@ import ZDCpu16.Inst(
   instructionLength, addOverflow, subUnderflow, mulOverflow, divUnderflow,
   modChecked, shlOverflow, shrUnderflow )
 import ZDCpu16.EmuState( EmuState(..) )
-import ZDCpu16.ConRPC( clWriteVRAM )
 
 -- -----------------------------------------------------------------------------
 newtype Emulator a = Emulator
@@ -123,7 +122,7 @@ setMem dir val = do
       oldram = ram newcpu
   put st{ emuCpu = newcpu{ ram = oldram // [(fromIntegral dir,val)] } }
   if dir >= 0x8000
-    then liftIO $ clWriteVRAM (conComm st) (fromIntegral (dir - 0x8000)) (fromIntegral val)
+    then liftIO $ (writeVRAM st) (fromIntegral (dir - 0x8000)) (fromIntegral val)
     else return ()
 
 -- -----------------------------------------------------------------------------

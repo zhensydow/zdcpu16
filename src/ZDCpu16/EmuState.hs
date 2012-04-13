@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module ZDCpu16.EmuState( EmuState(..), mkEmuState ) where
 
 -- -----------------------------------------------------------------------------
-import Network.MessagePackRpc.Client( Connection )
 import ZDCpu16.Hardware( DCPU_16(..), initialDCPU )
 
 -- -----------------------------------------------------------------------------
@@ -28,7 +27,7 @@ data EmuState = EmuState
                 , totalCycles :: ! Integer
                 , lastCycles :: ! Int
                 , runMode :: ! Bool
-                , conComm :: ! Connection }
+                , writeVRAM :: Int -> Int -> IO () }
 
 -- -----------------------------------------------------------------------------
 instance Show EmuState where
@@ -39,7 +38,7 @@ instance Show EmuState where
             ++ " } "
 
 -- -----------------------------------------------------------------------------
-mkEmuState :: Connection -> EmuState
+mkEmuState :: (Int -> Int -> IO ()) -> EmuState
 mkEmuState = EmuState initialDCPU 0 0 False
 
 -- -----------------------------------------------------------------------------
