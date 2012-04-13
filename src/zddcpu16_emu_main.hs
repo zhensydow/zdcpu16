@@ -18,9 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Main( main ) where
 
 -- -----------------------------------------------------------------------------
+import Control.Monad( unless )
 import qualified Data.ByteString as BS( readFile )
+import Data.Word( Word32 )
 import qualified Graphics.UI.SDL as SDL(
-  Event(..), SDLKey(..), Keysym(..), pollEvent )
+  Event(..), SDLKey(..), Keysym(..), pollEvent, getTicks )
 import System.Environment( getArgs, getProgName )
 import System.Exit( exitSuccess, exitFailure )
 import ZDCpu16.DebugRender(
@@ -29,7 +31,7 @@ import ZDCpu16.EmuState( EmuState(..), mkEmuState )
 import ZDCpu16.Hardware( loads )
 import ZDCpu16.ConRPC( startConsole, clQuit, clWriteVRAM )
 import ZDCpu16.Util( byteStringToWord16 )
-import ZDCpu16.ZDCpu16( runEmulator, stepEmulator )
+import ZDCpu16.ZDCpu16( runEmulator, stepEmulator, stepNCycles )
 
 -- -----------------------------------------------------------------------------
 getInput :: EmuState -> IO (EmuState, Bool)
@@ -51,27 +53,28 @@ getInput est = do
           if runMode est
             then getInput est
             else getInput est{ runMode = True }
-        SDL.SDLK_h -> do  
+        SDL.SDLK_h -> do
           if runMode est
             then getInput est{ runMode = False }
             else getInput est
         _ -> getInput est
-    SDL.NoEvent -> return $! (est, False)      
+    SDL.NoEvent -> return $! (est, False)
     _ -> getInput est
-    
+
 -- -----------------------------------------------------------------------------
-mainLoop :: RenderState -> EmuState -> IO ()
-mainLoop rst est = do
+mainLoop :: RenderState -> EmuState -> Int -> Word32 -> IO ()
+mainLoop rst est lastd lastt = do
   _ <- runRender (clearScreen >> renderEmuState est) rst
   (newEst, quit) <- getInput est
-  if quit
-    then return ()
-    else do
-      if runMode newEst
-        then do
-          (_,newEst2) <- runEmulator stepEmulator newEst
-          mainLoop rst newEst2
-        else mainLoop rst newEst
+  unless quit $ do
+    newt <- SDL.getTicks
+    if runMode newEst
+      then do
+        let dt = newt - lastt
+            cycles = fromIntegral $ dt * 100
+        (newd,newEst2) <- runEmulator (stepNCycles lastd cycles) newEst
+        mainLoop rst newEst2 newd newt
+      else mainLoop rst newEst lastd newt
 
 -- -----------------------------------------------------------------------------
 main :: IO ()
@@ -85,7 +88,8 @@ main = do
       let emptyState = mkEmuState (clWriteVRAM conn)
           initialEmuState = emptyState {
             emuCpu = loads 0 program $ emuCpu emptyState }
-      mainLoop rst initialEmuState
+      lastTicks <- SDL.getTicks
+      mainLoop rst initialEmuState 0 lastTicks
       clQuit conn
       exitSuccess
 
