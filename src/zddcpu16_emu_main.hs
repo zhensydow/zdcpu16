@@ -91,11 +91,10 @@ main = do
       program <- fmap byteStringToWord16 . BS.readFile $ filename
       conn <- startConsole
       rst <- mkRenderState
-      let emptyState = mkEmuState (clWriteVRAM conn)
-          initialEmuState = emptyState {
-            emuCpu = loads 0 program $ emuCpu emptyState }
+      emptyState <- mkEmuState (clWriteVRAM conn)
+      loads 0 program $ emuCpu emptyState
       lastTicks <- SDL.getTicks
-      mainLoop rst initialEmuState 0 lastTicks
+      mainLoop rst emptyState 0 lastTicks
       clQuit conn
       exitSuccess
 

@@ -25,11 +25,13 @@ module ZDCpu16.Hardware(
   ) where
 
 -- -----------------------------------------------------------------------------
-import Data.Array.Unboxed( UArray, listArray, elems, (!), (//) )
+import Control.Monad( forM_ )
+import Data.Array.IO( IOUArray, newListArray, writeArray, getElems )
+import Data.Array.Unboxed( UArray, listArray, elems, (!) )
 import Data.Word( Word16 )
 
 -- -----------------------------------------------------------------------------
-type RAM = UArray Int Word16
+type RAM = IOUArray Int Word16
 
 data DCPU_16 = DCPU_16
                { ram :: ! RAM
@@ -47,12 +49,14 @@ instance Show DCPU_16 where
                      , "}"]
 
 -- -----------------------------------------------------------------------------
-initialRAM :: UArray Int Word16
-initialRAM = listArray (0,0xffff) $ repeat 0
+initialRAM :: IO (IOUArray Int Word16)
+initialRAM = newListArray (0,0xffff) $ repeat 0
 initialRegisters :: UArray Int Word16
 initialRegisters = listArray (0,8) $ repeat 0
-initialDCPU :: DCPU_16
-initialDCPU = DCPU_16 initialRAM initialRegisters 0 0 0
+initialDCPU :: IO DCPU_16
+initialDCPU = do
+  iram <- initialRAM
+  return $! DCPU_16 iram initialRegisters 0 0 0
 
 -- -----------------------------------------------------------------------------
 regA :: DCPU_16 -> Word16
@@ -89,19 +93,16 @@ showReg r
       table = ["A","B","C","X","Y","Z","I","J"]
 
 -- -----------------------------------------------------------------------------
-load :: Int -> Word16 -> DCPU_16 -> DCPU_16
-load dir val dcpu = dcpu{ ram = newram }
-  where
-    newram = ram dcpu // [(dir,val)]
+load :: Int -> Word16 -> DCPU_16 -> IO ()
+load dir val dcpu = writeArray (ram dcpu) dir val
 
 -- -----------------------------------------------------------------------------
-loads :: Int -> [Word16] -> DCPU_16 -> DCPU_16
-loads dir vals dcpu = dcpu{ ram = newram }
-  where
-    newram = ram dcpu // zip [dir..] vals
+loads :: Int -> [Word16] -> DCPU_16 -> IO ()
+loads dir vals dcpu = forM_ (zip [dir..] vals) $ \(d,v) -> 
+  writeArray (ram dcpu) d v
 
 -- -----------------------------------------------------------------------------
-dumps :: Int -> DCPU_16 -> [Word16]
-dumps dir = drop dir . elems . ram
+dumps :: Int -> DCPU_16 -> IO [Word16]
+dumps dir = fmap (drop dir) . getElems . ram
 
 -- -----------------------------------------------------------------------------

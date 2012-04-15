@@ -29,7 +29,7 @@ import qualified Graphics.UI.SDL as SDL(
   InitFlag(..), init, setVideoMode, setCaption )
 import qualified Graphics.UI.SDL.TTF as SDLTTF( init, openFont )
 import ZDCpu16.Render(
-  RenderState, Render, TextSpan(..), newRenderState, runRender, clearScreen,
+  RenderState, Render, TextSpan(..), io, newRenderState, runRender, clearScreen,
   renderText, white, red, lightblue )
 import ZDCpu16.Disasm( disasm', showDIns )
 import ZDCpu16.EmuState( EmuState(..) )
@@ -84,7 +84,10 @@ renderEmuState st = do
 
   let pcnums = [valPC ..]
       pcdir = fromIntegral valPC
-      pcdisasm = take 20 $ disasm' . zip pcnums . dumps pcdir . emuCpu $ st
+      
+  memAt <- io $ dumps pcdir (emuCpu st)
+  
+  let pcdisasm = take 20 $ disasm' . zip pcnums $ memAt
 
   forM_ (zip [0..] pcdisasm) $ \(i,(mdir,inst)) -> do
     renderText (TextSpan 20 (50 + (i*10)) white

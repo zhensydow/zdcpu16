@@ -20,7 +20,7 @@ module ZDCpu16.Render(
   -- * Types
   RenderState, Render, TextSpan(..), Rectangle(..),
   -- * Functions
-  newRenderState, runRender, clearScreen, renderRectangle, renderText,
+  io, newRenderState, runRender, clearScreen, renderRectangle, renderText,
   -- * Colors
   black, white, red, green, blue, lightblue
   ) where

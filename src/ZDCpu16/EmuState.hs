@@ -1,4 +1,3 @@
-
 {- -----------------------------------------------------------------------------
 ZDCPU16 is a DCPU-16 emulator.
 Copyright (C) 2012  Luis Cabellos
@@ -39,7 +38,9 @@ instance Show EmuState where
             ++ " } "
 
 -- -----------------------------------------------------------------------------
-mkEmuState :: (Int -> Int -> IO ()) -> EmuState
-mkEmuState = EmuState initialDCPU 0 0 False 100
+mkEmuState :: (Int -> Int -> IO ()) -> IO EmuState
+mkEmuState fVRAM = do
+  idcpu <- initialDCPU
+  return $! EmuState idcpu 0 0 False 100 fVRAM
 
 -- -----------------------------------------------------------------------------

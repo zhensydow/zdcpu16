@@ -24,6 +24,7 @@ module ZDCpu16.ZDCpu16(
 import Control.Monad( when )
 import Control.Monad.IO.Class( MonadIO, liftIO )
 import Control.Monad.State( StateT, MonadState(..), runStateT, modify )
+import Data.Array.IO( readArray, writeArray )
 import Data.Array.Unboxed( (!), (//) )
 import Data.Bits( xor, (.&.), (.|.) );
 import Data.Word( Word16 )
@@ -112,14 +113,16 @@ setOverflow val = do
 
 -- -----------------------------------------------------------------------------
 getMem :: Word16 -> Emulator Word16
-getMem dir = fmap ((! (fromIntegral dir)) . ram . emuCpu) get
+getMem dir = do
+  st <- get
+  liftIO $ readArray (ram . emuCpu $ st) (fromIntegral dir)
 
 setMem :: Word16 -> Word16 -> Emulator ()
 setMem dir val = do
   st <- get
   let newcpu = emuCpu st
       oldram = ram newcpu
-  put st{ emuCpu = newcpu{ ram = oldram // [(fromIntegral dir,val)] } }
+  liftIO $ writeArray oldram (fromIntegral dir) val
   when (dir >= 0x8000)
     $ liftIO $ writeVRAM st (fromIntegral (dir - 0x8000)) (fromIntegral val)
 
